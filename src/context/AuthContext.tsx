@@ -104,9 +104,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Securely terminate session tokens globally
   const logout = async () => {
     try {
-      await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error('Logout failed:', error.message);
+      }
     } catch (error) {
-      console.error("Error logging out from Supabase server:", error);
+      console.error('Error logging out from Supabase server:', error);
     } finally {
       setUser(null);
     }
