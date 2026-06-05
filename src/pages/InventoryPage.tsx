@@ -1,40 +1,93 @@
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { Plus } from 'lucide-react';
+
+import IngredientsTable from '../components/IngredientsTable';
+import AddIngredientForm from '../components/AddIngredientForm';
+
+// 📐 Define the shared data schema rule for this page context
+interface Ingredient {
+  ingredient_id: number;
+  ingredient_name: string;
+  ingredient_category: string;
+  stock_quantity: number;
+  measurement_unit: string;
+  threshold: number;
+  stock_status: string;
+  stock_date: string;
+  expiry_date: string;
+}
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const isAdmin = user?.role === 'admin';
+  
+  // 🌟 Type definition added here to prevent the 'never[]' compiler error!
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchIngredients = async () => {
+    const { data, error } = await supabase.from('ingredients').select('*');
+    
+    // This line will now compile perfectly with zero errors!
+    if (!error && data) setIngredients(data);
+  };
+
+  useEffect(() => {
+    fetchIngredients();
+  }, []);
 
   return (
     <div className="min-h-screen bg-stone-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
-        <button onClick={() => navigate('/home')} className="flex items-center space-x-1.5 text-stone-500 hover:text-stone-800 font-medium text-sm mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> <span>Back to Home</span>
-        </button>
+      {/* Upper Header Container */}
+      <div className="mb-8 bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+        <h1 className="text-2xl font-bold text-stone-800">Cafe Inventory Management</h1>
+        <p className="text-sm text-stone-500">Manage real-time raw materials stock ledger values.</p>
+      </div>
 
-        <div className="flex justify-between items-center border-b border-stone-200 pb-4 mb-6">
-          <h1 className="text-3xl font-bold text-stone-800">📋 Café Stock Inventory</h1>
+      {/* SIDE-BY-SIDE VERTICAL SECTIONS SPLIT WRAPPER */}
+      <div className="flex flex-row gap-8 items-start w-full">
+        
+        {/* LEFT COMPONENT: Data Table */}
+        <IngredientsTable ingredients={ingredients} />
 
-          {/* Action Control Button - Only enabled for Admin */}
-          {isAdmin ? (
-            <button className="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-              + Add New Ingredient
-            </button>
-          ) : (
-            <span className="text-xs bg-stone-100 text-stone-400 border border-stone-200 px-3 py-1.5 rounded-full font-medium">
-              👁️ Read-Only Mode
-            </span>
+        {/* RIGHT COMPONENT: Sidebar Controls */}
+        <div className="w-96 shrink-0 space-y-4">
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+            <h2 className="text-base font-bold text-stone-800 mb-2">Operations Panel</h2>
+            {user?.role === 'admin' ? (
+              <div>
+                {!isModalOpen ? (
+                  <button
+                    onClick={() => setIsModalOpen(true)}
+                    className="w-full flex items-center justify-center space-x-2 bg-orange-600 hover:bg-orange-700 text-white font-medium p-3 rounded-xl shadow-sm transition"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Add Ingredient</span>
+                  </button>
+                ) : (
+                  <div className="text-stone-400 text-xs text-center font-medium py-3 bg-stone-50 border border-stone-200 border-dashed rounded-xl">
+                    Registration form active below
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="bg-stone-50 border border-stone-200 p-4 rounded-xl text-stone-500 font-medium text-xs text-center">
+                👁️ Dashboard locked in Read-Only Mode
+              </div>
+            )}
+          </div>
+
+          {/* Render Add Form Sidebar Panel */}
+          {isModalOpen && user?.role === 'admin' && (
+            <AddIngredientForm 
+              onClose={() => setIsModalOpen(false)} 
+              onSuccess={() => {
+                setIsModalOpen(false);
+                fetchIngredients();
+              }}
+            />
           )}
-        </div>
-
-        <p className="text-stone-600">
-          Current Active Role: <strong className="text-amber-800 uppercase">{user?.role}</strong>
-        </p>
-
-        <div className="mt-6 border border-stone-200 rounded-xl overflow-hidden bg-stone-50 p-6 text-center text-stone-400">
-          [Inventory list database query table outputs populate here]
         </div>
       </div>
     </div>
