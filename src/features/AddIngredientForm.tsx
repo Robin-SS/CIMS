@@ -1,90 +1,91 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import AddIngredientFormUI from '../components/AddIngredientFormUI';
 
 interface AddIngredientFormProps {
-  onClose: () => void;
   onSuccess: () => void;
+  children: (props: {
+    formError: string;
+    formName: string;
+    setFormName: (v: string) => void;
+    formCategory: string;
+    setFormCategory: (v: string) => void;
+    formQuantity: string;
+    setFormQuantity: (v: string) => void;
+    formUnit: string;
+    setFormUnit: (v: string) => void;
+    formThreshold: string;
+    setFormThreshold: (v: string) => void;
+    formStockDate: string;
+    setFormStockDate: (v: string) => void;
+    formExpiryDate: string;
+    setFormExpiryDate: (v: string) => void;
+    handleAddIngredient: (e: React.FormEvent) => Promise<void>;
+  }) => React.ReactNode;
 }
 
-export default function AddIngredientForm({ onClose, onSuccess }: AddIngredientFormProps) {
-  const [errorMessage, setErrorMessage] = useState('');
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Ingredients');
-  const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('pcs');
-  const [threshold, setThreshold] = useState('');
-  const [stockDate, setStockDate] = useState(new Date().toISOString().split('T')[0]);
-  const [expiryDate, setExpiryDate] = useState('');
+export default function AddIngredientForm({ onSuccess, children }: AddIngredientFormProps) {
+  const [formError, setFormError] = useState('');
+  const [formName, setFormName] = useState('');
+  const [formCategory, setFormCategory] = useState('Ingredients');
+  const [formQuantity, setFormQuantity] = useState('');
+  const [formUnit, setFormUnit] = useState('pcs');
+  const [formThreshold, setFormThreshold] = useState('');
+  const [formStockDate, setFormStockDate] = useState(new Date().toISOString().split('T')[0]);
+  const [formExpiryDate, setFormExpiryDate] = useState('');
 
   const handleAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage('');
+    setFormError('');
 
-    if (!name.trim() || !quantity || !unit || !threshold || !stockDate || !expiryDate) {
-      setErrorMessage('Validation Error: All fields are explicitly required.');
+    if (!formName.trim() || !formQuantity || !formUnit || !formThreshold || !formStockDate || !formExpiryDate) {
+      setFormError('Validation Error: All fields are explicitly required.');
       return;
     }
 
-    const parsedQty = parseFloat(quantity);
-    const parsedThreshold = parseInt(threshold);
+    const parsedQty = parseFloat(formQuantity);
+    const parsedThreshold = parseInt(formThreshold);
 
     if (parsedQty < 0 || parsedThreshold < 0) {
-      setErrorMessage('Validation Error: Quantity and Threshold values cannot be negative.');
+      setFormError('Validation Error: Quantity and Threshold values cannot be negative.');
       return;
     }
 
-    if (new Date(expiryDate) <= new Date(stockDate)) {
-      setErrorMessage('Validation Error: Expiration Date must be scheduled after the inbound Stock Date.');
+    if (new Date(formExpiryDate) <= new Date(formStockDate)) {
+      setFormError('Validation Error: Expiration Date must be scheduled after the inbound Stock Date.');
       return;
     }
 
     const { error } = await supabase.from('ingredients').insert([
       {
-        ingredient_name: name.trim(),
-        ingredient_category: category,
+        ingredient_name: formName.trim(),
+        ingredient_category: formCategory,
         stock_quantity: parsedQty,
-        measurement_unit: unit,
+        measurement_unit: formUnit,
         threshold: parsedThreshold,
-        stock_date: stockDate,
-        expiry_date: expiryDate,
+        stock_date: formStockDate,
+        expiry_date: formExpiryDate,
       },
     ]);
 
     if (error) {
       if (error.code === '23505') {
-        setErrorMessage('Database Alert: An ingredient matching this exact name already exists.');
+        setFormError('Database Alert: An ingredient matching this exact name already exists.');
       } else {
-        setErrorMessage(`Execution Error: ${error.message}`);
+        setFormError(`Execution Error: ${error.message}`);
       }
     } else {
-      setName('');
-      setQuantity('');
-      setThreshold('');
-      setExpiryDate('');
+      setFormName('');
+      setFormQuantity('');
+      setFormThreshold('');
+      setFormExpiryDate('');
       onSuccess();
     }
   };
 
-  return (
-    <AddIngredientFormUI
-      onClose={onClose}
-      onSubmit={handleAddIngredient}
-      errorMessage={errorMessage}
-      name={name}
-      setName={setName}
-      category={category}
-      setCategory={setCategory}
-      quantity={quantity}
-      setQuantity={setQuantity}
-      unit={unit}
-      setUnit={setUnit}
-      threshold={threshold}
-      setThreshold={setThreshold}
-      stockDate={stockDate}
-      setStockDate={setStockDate}
-      expiryDate={expiryDate}
-      setExpiryDate={setExpiryDate}
-    />
-  );
+  return <>{children({
+    formError, formName, setFormName, formCategory, setFormCategory,
+    formQuantity, setFormQuantity, formUnit, setFormUnit,
+    formThreshold, setFormThreshold, formStockDate, setFormStockDate,
+    formExpiryDate, setFormExpiryDate, handleAddIngredient
+  })}</>;
 }

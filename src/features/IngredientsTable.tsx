@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import IngredientsTableUI from '../components/IngredientsTableUI';
+import React, { useState } from 'react';
 
 interface Ingredient {
   ingredient_id: number;
@@ -15,9 +14,15 @@ interface Ingredient {
 
 interface IngredientsTableProps {
   ingredients: Ingredient[];
+  children: (props: {
+    sortedIngredients: Ingredient[];
+    sortColumn: keyof Ingredient;
+    sortDirection: 'asc' | 'desc';
+    handleSort: (column: keyof Ingredient) => void;
+  }) => React.ReactNode;
 }
 
-export default function IngredientsTable({ ingredients }: IngredientsTableProps) {
+export default function IngredientsTable({ ingredients, children }: IngredientsTableProps) {
   const [sortColumn, setSortColumn] = useState<keyof Ingredient>('ingredient_name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
@@ -44,12 +49,5 @@ export default function IngredientsTable({ ingredients }: IngredientsTableProps)
     return 0;
   });
 
-  return (
-    <IngredientsTableUI
-      sortedIngredients={sortedIngredients}
-      sortColumn={sortColumn}
-      sortDirection={sortDirection}
-      onSort={handleSort}
-    />
-  );
+  return <>{children({ sortedIngredients, sortColumn, sortDirection, handleSort })}</>;
 }
