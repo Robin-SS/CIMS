@@ -3,10 +3,9 @@ import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { Plus } from 'lucide-react';
 
-import IngredientsTable from '../components/IngredientsTable';
-import AddIngredientForm from '../components/AddIngredientForm';
+import IngredientsTable from '../features/IngredientsTable';
+import AddIngredientForm from '../features/AddIngredientForm';
 
-// 📐 Define the shared data schema rule for this page context
 interface Ingredient {
   ingredient_id: number;
   ingredient_name: string;
@@ -22,7 +21,7 @@ interface Ingredient {
 export default function InventoryPage() {
   const { user } = useAuth();
   
-  // 🌟 Type definition added here to prevent the 'never[]' compiler error!
+  // Type definition added here to prevent the 'never[]' compiler error!
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 

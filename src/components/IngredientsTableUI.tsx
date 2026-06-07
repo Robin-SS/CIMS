@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Ingredient {
@@ -13,37 +12,20 @@ interface Ingredient {
   expiry_date: string;
 }
 
-interface IngredientsTableProps {
-  ingredients: Ingredient[];
+interface IngredientsTableUIProps {
+  sortedIngredients: Ingredient[];
+  sortColumn: keyof Ingredient;
+  sortDirection: 'asc' | 'desc';
+  onSort: (column: keyof Ingredient) => void;
 }
 
-export default function IngredientsTable({ ingredients }: IngredientsTableProps) {
-  const [sortColumn, setSortColumn] = useState<keyof Ingredient>('ingredient_name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  const handleSort = (column: keyof Ingredient) => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortColumn(column);
-      setSortDirection('asc');
-    }
-  };
-
-  const sortedIngredients = [...ingredients].sort((a, b) => {
-    let valueA = a[sortColumn];
-    let valueB = b[sortColumn];
-
-    if (typeof valueA === 'string' && typeof valueB === 'string') {
-      valueA = valueA.toLowerCase();
-      valueB = valueB.toLowerCase();
-    }
-
-    if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
-    if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
-    return 0;
-  });
-
+export default function IngredientsTableUI({
+  sortedIngredients,
+  sortColumn,
+  sortDirection,
+  onSort,
+}: IngredientsTableUIProps) {
+  
   const renderSortIcon = (column: keyof Ingredient) => {
     if (sortColumn !== column) {
       return <ArrowUpDown className="w-3.5 h-3.5 ml-1 text-stone-400 inline" />;
@@ -62,29 +44,29 @@ export default function IngredientsTable({ ingredients }: IngredientsTableProps)
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-stone-50 border-b border-stone-200 text-stone-700 text-xs font-semibold uppercase tracking-wider select-none">
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('ingredient_id')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('ingredient_id')}>
                 ID {renderSortIcon('ingredient_id')}
               </th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('ingredient_name')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('ingredient_name')}>
                 Name {renderSortIcon('ingredient_name')}
               </th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('ingredient_category')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('ingredient_category')}>
                 Category {renderSortIcon('ingredient_category')}
               </th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('stock_quantity')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('stock_quantity')}>
                 Qty {renderSortIcon('stock_quantity')}
               </th>
               <th className="p-4">Unit</th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('threshold')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('threshold')}>
                 Threshold {renderSortIcon('threshold')}
               </th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('stock_status')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('stock_status')}>
                 Status {renderSortIcon('stock_status')}
               </th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('stock_date')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('stock_date')}>
                 Stock Date {renderSortIcon('stock_date')}
               </th>
-              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => handleSort('expiry_date')}>
+              <th className="p-4 cursor-pointer hover:bg-stone-100/80 transition" onClick={() => onSort('expiry_date')}>
                 Expiry Date {renderSortIcon('expiry_date')}
               </th>
             </tr>

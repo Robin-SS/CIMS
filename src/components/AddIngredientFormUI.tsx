@@ -1,71 +1,45 @@
-import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
-import { X, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, X } from 'lucide-react';
+import React from 'react';
 
-interface AddIngredientFormProps {
+interface AddIngredientFormUIProps {
   onClose: () => void;
-  onSuccess: () => void;
+  onSubmit: (e: React.FormEvent) => void;
+  errorMessage: string;
+  name: string;
+  setName: (v: string) => void;
+  category: string;
+  setCategory: (v: string) => void;
+  quantity: string;
+  setQuantity: (v: string) => void;
+  unit: string;
+  setUnit: (v: string) => void;
+  threshold: string;
+  setThreshold: (v: string) => void;
+  stockDate: string;
+  setStockDate: (v: string) => void;
+  expiryDate: string;
+  setExpiryDate: (v: string) => void;
 }
 
-export default function AddIngredientForm({ onClose, onSuccess }: AddIngredientFormProps) {
-  const [errorMessage, setErrorMessage] = useState('');
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('Ingredients');
-  const [quantity, setQuantity] = useState('');
-  const [unit, setUnit] = useState('pcs');
-  const [threshold, setThreshold] = useState('');
-  const [stockDate, setStockDate] = useState(new Date().toISOString().split('T')[0]);
-  const [expiryDate, setExpiryDate] = useState('');
-
-  const handleAddIngredient = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMessage('');
-
-    if (!name.trim() || !quantity || !unit || !threshold || !stockDate || !expiryDate) {
-      setErrorMessage('Validation Error: All fields are explicitly required.');
-      return;
-    }
-
-    const parsedQty = parseFloat(quantity);
-    const parsedThreshold = parseInt(threshold);
-
-    if (parsedQty < 0 || parsedThreshold < 0) {
-      setErrorMessage('Validation Error: Quantity and Threshold values cannot be negative.');
-      return;
-    }
-
-    if (new Date(expiryDate) <= new Date(stockDate)) {
-      setErrorMessage('Validation Error: Expiration Date must be scheduled after the inbound Stock Date.');
-      return;
-    }
-
-    const { error } = await supabase.from('ingredients').insert([
-      {
-        ingredient_name: name.trim(),
-        ingredient_category: category,
-        stock_quantity: parsedQty,
-        measurement_unit: unit,
-        threshold: parsedThreshold,
-        stock_date: stockDate,
-        expiry_date: expiryDate,
-      },
-    ]);
-
-    if (error) {
-      if (error.code === '23505') {
-        setErrorMessage('Database Alert: An ingredient matching this exact name already exists.');
-      } else {
-        setErrorMessage(`Execution Error: ${error.message}`);
-      }
-    } else {
-      setName('');
-      setQuantity('');
-      setThreshold('');
-      setExpiryDate('');
-      onSuccess();
-    }
-  };
-
+export default function AddIngredientFormUI({
+  onClose,
+  onSubmit,
+  errorMessage,
+  name,
+  setName,
+  category,
+  setCategory,
+  quantity,
+  setQuantity,
+  unit,
+  setUnit,
+  threshold,
+  setThreshold,
+  stockDate,
+  setStockDate,
+  expiryDate,
+  setExpiryDate,
+}: AddIngredientFormUIProps) {
   return (
     <div className="bg-white rounded-2xl p-6 shadow-sm border border-stone-200 relative animate-in fade-in slide-in-from-top-2 duration-200">
       <button 
@@ -85,7 +59,7 @@ export default function AddIngredientForm({ onClose, onSuccess }: AddIngredientF
         </div>
       )}
 
-      <form onSubmit={handleAddIngredient} className="space-y-4">
+      <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="block text-xs font-semibold uppercase tracking-wider text-stone-600 mb-1">Ingredient Name</label>
           <input 
