@@ -2,9 +2,11 @@ import { useState, useEffect } from 'react';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
+
 import InventoryPageUI from '../components/InventoryPageUI';
 import IngredientsTable from '../features/IngredientsTable';
 import AddIngredientForm from '../features/AddIngredientForm';
+import NotificationPanel from '../features/NotificationPanel';
 
 interface Ingredient {
   ingredient_id: number;
@@ -15,7 +17,7 @@ interface Ingredient {
   threshold: number;
   stock_status: string;
   stock_date: string;
-  expiry_date: string;
+  expiry_date: string;  
 }
 
 export default function InventoryPage() {
@@ -61,9 +63,12 @@ export default function InventoryPage() {
               formExpiryDate={formProps.formExpiryDate}
               setFormExpiryDate={formProps.setFormExpiryDate}
               onFormSubmit={formProps.handleAddIngredient}
-            />
+            >
+              <NotificationPanel />
+            </InventoryPageUI>
           )}
         </AddIngredientForm>
+        
       )}
     </IngredientsTable>
   );

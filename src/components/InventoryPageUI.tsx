@@ -1,5 +1,5 @@
 import React from 'react';
-import { Plus, Eye, ArrowUpDown, ArrowUp, ArrowDown, X, AlertTriangle } from 'lucide-react';
+import { Plus, Eye, ArrowUpDown, ArrowUp, ArrowDown, X, AlertTriangle, Bell } from 'lucide-react';
 
 interface Ingredient {
   ingredient_id: number;
@@ -42,6 +42,7 @@ interface InventoryPageUIProps {
   formExpiryDate: string;
   setFormExpiryDate: (v: string) => void;
   onFormSubmit: (e: React.FormEvent) => void;
+  children?: React.ReactNode;
 }
 
 export default function InventoryPageUI({
@@ -69,6 +70,11 @@ export default function InventoryPageUI({
   setFormExpiryDate,
   onFormSubmit,
 }: InventoryPageUIProps) {
+  
+  // Filter out any items that require immediate attention
+  const alertIngredients = sortedIngredients.filter(
+    item => item.stock_status === 'Low Stock' || item.stock_status === 'NO STOCK'
+  );
   
   const renderSortIcon = (column: keyof Ingredient) => {
     if (sortColumn !== column) {
@@ -160,6 +166,47 @@ export default function InventoryPageUI({
 
         {/* ==================== RIGHT: FORM PANEL DESIGN ==================== */}
         <div className="w-96 shrink-0 space-y-4">
+
+          {/* MERGED: Notification System Panel */}
+          <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
+            <div className="flex items-center space-x-2 mb-4">
+              <Bell className="w-5 h-5 text-stone-700" />
+              <h2 className="text-base font-bold text-stone-800">System Alerts</h2>
+              {alertIngredients.length > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                  {alertIngredients.length}
+                </span>
+              )}
+            </div>
+
+            {alertIngredients.length === 0 ? (
+              <p className="text-xs text-stone-400 italic">All raw materials healthy and well stocked.</p>
+            ) : (
+              <div className="max-h-48 overflow-y-auto space-y-2 pr-1">
+                {alertIngredients.map((item) => (
+                  <div 
+                    key={item.ingredient_id} 
+                    className={`p-3 rounded-xl border text-xs flex items-start space-x-2.5 ${
+                      item.stock_status === 'NO STOCK' 
+                        ? 'bg-red-50 border-red-100 text-red-800' 
+                        : 'bg-amber-50 border-amber-100 text-amber-800'
+                    }`}
+                  >
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-semibold">{item.ingredient_name}</p>
+                      <p className="text-[11px] opacity-90">
+                        {item.stock_status === 'NO STOCK' 
+                          ? 'Out of stock entirely!' 
+                          : `Running low: Only ${item.stock_quantity} ${item.measurement_unit} remaining.`
+                        }
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="bg-white p-6 rounded-2xl shadow-sm border border-stone-200">
             <h2 className="text-base font-bold text-stone-800 mb-2">Operations Panel</h2>
             {userRole === 'admin' ? (
@@ -286,7 +333,7 @@ export default function InventoryPageUI({
             </div>
           )}
         </div>
-
+        
       </div>
     </div>
   );
