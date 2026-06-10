@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { InventoryProvider } from './context/InventoryContext'; // 1. Import the provider
-
 import Login from './pages/Login';
 import HomeHub from './pages/HomeHub';
 import PosTerminal from './pages/PosTerminal';
@@ -13,7 +12,7 @@ function App() {
   const { user } = useAuth();
 
   return (
-    // 2. Wrap your router in the provider
+    // 2. Wrap your entire router setup here
     <InventoryProvider>
       <BrowserRouter>
         <Routes>
@@ -33,7 +32,7 @@ function App() {
             } 
           />
 
-          {/* Module Pages - Both can visit, permissions handled inside components */}
+          {/* Module Pages */}
           <Route 
             path="/pos" 
             element={

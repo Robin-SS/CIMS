@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 
@@ -6,19 +7,36 @@ import InventoryPageUI from '../components/InventoryPageUI';
 import IngredientsTable from '../features/IngredientsTable';
 import AddIngredientForm from '../features/AddIngredientForm';
 
+interface Ingredient {
+  ingredient_id: number;
+  ingredient_name: string;
+  ingredient_category: string;
+  stock_quantity: number;
+  measurement_unit: string;
+  threshold: number;
+  stock_status: string;
+  stock_date: string;
+  expiry_date: string;
+}
+
 export default function InventoryPage() {
   const { user } = useAuth();
-  
-  // Grab the master list of ingredients directly from the Context
-  const { ingredients } = useInventory(); 
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const fetchIngredients = async () => {
+    const { data, error } = await supabase.from('ingredients').select('*');
+    if (!error && data) setIngredients(data);
+  };
+
+  useEffect(() => {
+    fetchIngredients();
+  }, []);
 
   return (
     <IngredientsTable ingredients={ingredients}>
       {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
-        
-        // Context automatically refreshes the data on submit, so we just close the modal here
-        <AddIngredientForm onSuccess={() => setIsModalOpen(false)}> 
+        <AddIngredientForm onSuccess={() => { setIsModalOpen(false); fetchIngredients(); }}>
           {(formProps) => (
             <InventoryPageUI
               userRole={user?.role}

@@ -19,40 +19,38 @@ interface AddIngredientFormProps {
     setFormStockDate: (v: string) => void;
     formExpiryDate: string;
     setFormExpiryDate: (v: string) => void;
-    handleAddIngredient: (e: React.FormEvent) => Promise<void>;
+    handleAddIngredient: (e: React.FormEvent) => Promise<boolean>; // Returns a boolean status indicator
   }) => React.ReactNode;
 }
 
 export default function AddIngredientForm({ onSuccess, children }: AddIngredientFormProps) {
-  const { ingredients, addIngredient } = useInventory(); // Hook into your global context
-  
+  const { ingredients, addIngredient } = useInventory(); 
   const [formError, setFormError] = useState('');
   const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('Ingredients');
+  const [formCategory, setFormCategory] = useState('INGREDIENTS'); // Fixed: Casing matches UI category layout filters
   const [formQuantity, setFormQuantity] = useState('');
   const [formUnit, setFormUnit] = useState('pcs');
   const [formThreshold, setFormThreshold] = useState('');
   const [formStockDate, setFormStockDate] = useState(new Date().toISOString().split('T')[0]);
   const [formExpiryDate, setFormExpiryDate] = useState('');
 
-  const handleAddIngredient = async (e: React.FormEvent) => {
+  const handleAddIngredient = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
-    
     setFormError('');
 
-    // duplicate check
+    // Instant client-side duplicate prevention execution
     const isDuplicate = ingredients.some(
       (item) => item.ingredient_name.trim().toLowerCase() === formName.trim().toLowerCase()
     );
 
     if (isDuplicate) {
       setFormError('Validation Error: An ingredient matching this exact name already exists.');
-      return; // Stops execution immediately!
+      return false; 
     }
 
     if (!formName.trim() || !formQuantity || !formUnit || !formThreshold || !formStockDate || !formExpiryDate) {
       setFormError('Validation Error: All fields are explicitly required.');
-      return;
+      return false;
     }
 
     const parsedQty = parseFloat(formQuantity);
@@ -60,15 +58,14 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
 
     if (parsedQty < 0 || parsedThreshold < 0) {
       setFormError('Validation Error: Quantity and Threshold values cannot be negative.');
-      return;
+      return false;
     }
 
     if (new Date(formExpiryDate) <= new Date(formStockDate)) {
       setFormError('Validation Error: Expiration Date must be scheduled after the inbound Stock Date.');
-      return;
+      return false;
     }
 
-    // Call the context function instead of Supabase directly
     const success = await addIngredient({
       ingredient_name: formName.trim(),
       ingredient_category: formCategory,
@@ -81,12 +78,14 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
 
     if (!success) {
       setFormError('Database Alert: Could not save item. Ensure the name is unique.');
+      return false;
     } else {
       setFormName('');
       setFormQuantity('');
       setFormThreshold('');
       setFormExpiryDate('');
       onSuccess();
+      return true;
     }
   };
 
