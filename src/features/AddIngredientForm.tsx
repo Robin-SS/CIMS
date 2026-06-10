@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useInventory } from '../context/InventoryContext';
 
 interface AddIngredientFormProps {
   onSuccess: () => void;
@@ -24,6 +24,8 @@ interface AddIngredientFormProps {
 }
 
 export default function AddIngredientForm({ onSuccess, children }: AddIngredientFormProps) {
+  const { ingredients, addIngredient } = useInventory(); // Hook into your global context
+  
   const [formError, setFormError] = useState('');
   const [formName, setFormName] = useState('');
   const [formCategory, setFormCategory] = useState('Ingredients');
@@ -35,7 +37,18 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
 
   const handleAddIngredient = async (e: React.FormEvent) => {
     e.preventDefault();
+    
     setFormError('');
+
+    // duplicate check
+    const isDuplicate = ingredients.some(
+      (item) => item.ingredient_name.trim().toLowerCase() === formName.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setFormError('Validation Error: An ingredient matching this exact name already exists.');
+      return; // Stops execution immediately!
+    }
 
     if (!formName.trim() || !formQuantity || !formUnit || !formThreshold || !formStockDate || !formExpiryDate) {
       setFormError('Validation Error: All fields are explicitly required.');
@@ -55,24 +68,19 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
       return;
     }
 
-    const { error } = await supabase.from('ingredients').insert([
-      {
-        ingredient_name: formName.trim(),
-        ingredient_category: formCategory,
-        stock_quantity: parsedQty,
-        measurement_unit: formUnit,
-        threshold: parsedThreshold,
-        stock_date: formStockDate,
-        expiry_date: formExpiryDate,
-      },
-    ]);
+    // Call the context function instead of Supabase directly
+    const success = await addIngredient({
+      ingredient_name: formName.trim(),
+      ingredient_category: formCategory,
+      stock_quantity: parsedQty,
+      measurement_unit: formUnit,
+      threshold: parsedThreshold,
+      stock_date: formStockDate,
+      expiry_date: formExpiryDate,
+    });
 
-    if (error) {
-      if (error.code === '23505') {
-        setFormError('Database Alert: An ingredient matching this exact name already exists.');
-      } else {
-        setFormError(`Execution Error: ${error.message}`);
-      }
+    if (!success) {
+      setFormError('Database Alert: Could not save item. Ensure the name is unique.');
     } else {
       setFormName('');
       setFormQuantity('');

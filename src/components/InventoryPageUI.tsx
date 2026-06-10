@@ -2,6 +2,8 @@
 import React, { useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
+import type { Ingredient } from '../types/InventoryItem';
+
 
 // Icons for Bottom Navigation Bar and Actions Panel (in .png format)
 import cafeLogo    from '../assets/cafeLogo.png';
@@ -15,17 +17,6 @@ import deleteIcon  from '../assets/deleteIcon.png';
 import adminIcon   from '../assets/adminIcon.png';
 import searchIcon from '../assets/searchIcon.png';
 
-interface Ingredient {
-  ingredient_id: number;
-  ingredient_name: string;
-  ingredient_category: string;
-  stock_quantity: number;
-  measurement_unit: string;
-  threshold: number;
-  stock_status: string;
-  stock_date: string;
-  expiry_date: string;
-}
 
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
@@ -138,6 +129,8 @@ export default function InventoryPageUI({
     width: '100%', padding: '10px 0', background: '#D1915F', color: '#FFFFFF',
     fontWeight: 700, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer', marginTop: 4
   };
+
+
   return (
     // Root Container (flex-col with space-between to push the nav bar to the bottom)
     <div style={{
@@ -422,7 +415,10 @@ export default function InventoryPageUI({
 
                       {/* [ADD] Ingredient Form/Fields*/}
                       <form
-                        onSubmit={(e) => { onFormSubmit(e); if (!formError) goBackToMenu(); }}
+                        onSubmit={async (e) => { 
+                          // If your form submit handler is async, await it before looking at state updates
+                          await onFormSubmit(e); 
+                        }}
                         style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
                       >
                         {/* [ADD] Ingredient Name */}
