@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       });
 
       if (authError) {
-        return { success: false, error: 'Invalid username or password' };
+        return { success: false, error: 'Invalid Credentials' };
       }
 
       // 3. Query profiles table to retrieve display settings and application permissions
