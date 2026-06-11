@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import type { Ingredient } from '../types/InventoryItem';
 
-import cafeLogo    from '../assets/cafeLogo.png';
-import homeIcon    from '../assets/homeIcon.png';
-import posIcon     from '../assets/posIcon.png';
+import cafeLogo      from '../assets/cafeLogo.png';
+import homeIcon      from '../assets/homeIcon.png';
+import posIcon       from '../assets/posIcon.png';
 import inventoryIcon from '../assets/inventoryIcon.png';
 import insightsIcon  from '../assets/insightsIcon.png';
-import addIcon     from '../assets/addIcon.png';
-import editIcon    from '../assets/editIcon.png';
-import deleteIcon  from '../assets/deleteIcon.png';
-import adminIcon   from '../assets/adminIcon.png';
-import searchIcon  from '../assets/searchIcon.png';
+import addIcon       from '../assets/addIcon.png';
+import editIcon      from '../assets/editIcon.png';
+import deleteIcon    from '../assets/deleteIcon.png';
+import adminIcon     from '../assets/adminIcon.png';
+import searchIcon    from '../assets/searchIcon.png';
 
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
@@ -29,14 +29,12 @@ interface InventoryPageUIProps {
   actionView: ActionView;
   setActionView: (view: ActionView) => void;
 
-  // Multi-select & single item shared hooks
   selectedIngredient: Ingredient | null;
   onSelectIngredient: (item: Ingredient | null) => void;
   selectedIds: Set<number>;
   onToggleSelect: (item: Ingredient) => void;
   onClearSelection: () => void;
 
-  // Add Form Bindings
   formError: string;
   formName: string;
   setFormName: (v: string) => void;
@@ -54,7 +52,6 @@ interface InventoryPageUIProps {
   setFormExpiryDate: (v: string) => void;
   onFormSubmit: (e: React.FormEvent) => Promise<boolean>;
 
-  // Edit Form Bindings
   editError: string;
   editName: string;
   setEditName: (v: string) => void;
@@ -72,10 +69,9 @@ interface InventoryPageUIProps {
   setEditExpiryDate: (v: string) => void;
   onEditSubmit: (e: React.FormEvent) => Promise<boolean>;
 
-  // Delete Form Bindings
   deleteError: string;
   onDeleteSubmit: () => Promise<boolean>;
-  
+
   children?: React.ReactNode;
 }
 
@@ -94,31 +90,21 @@ export default function InventoryPageUI({
   selectedIds,
   onToggleSelect,
   onClearSelection,
-  formError,
-  formName, setFormName,
-  formCategory, setFormCategory,
-  formQuantity, setFormQuantity,
-  formUnit, setFormUnit,
-  formThreshold, setFormThreshold,
-  formStockDate, setFormStockDate,
-  formExpiryDate, setFormExpiryDate,
-  onFormSubmit,
-  editError,
-  editName, setEditName,
-  editCategory, setEditCategory,
-  editQuantity, setEditQuantity,
-  editUnit, setEditUnit,
-  editThreshold, setEditThreshold,
-  editStockDate, setEditStockDate,
-  editExpiryDate, setEditExpiryDate,
-  onEditSubmit,
-  deleteError,
-  onDeleteSubmit,
+  formError, formName, setFormName, formCategory, setFormCategory,
+  formQuantity, setFormQuantity, formUnit, setFormUnit,
+  formThreshold, setFormThreshold, formStockDate, setFormStockDate,
+  formExpiryDate, setFormExpiryDate, onFormSubmit,
+  editError, editName, setEditName, editCategory, setEditCategory,
+  editQuantity, setEditQuantity, editUnit, setEditUnit,
+  editThreshold, setEditThreshold, editStockDate, setEditStockDate,
+  editExpiryDate, setEditExpiryDate, onEditSubmit,
+  deleteError, onDeleteSubmit,
   children,
 }: InventoryPageUIProps) {
 
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+
   const isAdmin = userRole?.toLowerCase() === 'admin';
   const CATEGORY_ORDER = ['INGREDIENTS', 'PACKAGING', 'CONSUMABLES'];
 
@@ -135,12 +121,14 @@ export default function InventoryPageUI({
     setActionView(view);
     setIsModalOpen(view === 'add');
     onClearSelection();
+    onSelectIngredient(null);
   };
 
   const goBackToMenu = () => {
     setActionView('menu');
     setIsModalOpen(false);
     onClearSelection();
+    onSelectIngredient(null);
   };
 
   const renderSortIcon = (column: keyof Ingredient) => {
@@ -174,30 +162,19 @@ export default function InventoryPageUI({
         @import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');
         .inventory-row { transition: background-color 0.15s ease; }
         .inventory-row:hover { background-color: #FDFBF7; }
-        .inventory-row.del-selected,
-        .inventory-row.del-selected:hover {
-          background-color: #FF2C2C !important;
-          color: #FFFFFF;
-        }
+        .inventory-row.del-selected, .inventory-row.del-selected:hover { background-color: #FF2C2C !important; color: #FFFFFF; }
+        .inventory-row.edit-selected, .inventory-row.edit-selected:hover { background-color: #D1915F !important; color: #FFFFFF; }
       `}</style>
 
-      {/* HEADER BAR */}
+      {/* HEADER */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} />
-          <h1 style={{
-            fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E',
-            lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column'
-          }}>
-            <span>Tita's</span>
-            <span>cafe</span>
+          <h1 style={{ fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E', lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
+            <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: 10, background: 'white',
-          padding: '15px 25px', borderRadius: 28, border: '1px solid #D3C9BE',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.04)', color: '#D1915F', fontWeight: 'bold', fontSize: 20
-        }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', padding: '15px 25px', borderRadius: 28, border: '1px solid #D3C9BE', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', color: '#D1915F', fontWeight: 'bold', fontSize: 20 }}>
           <div style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
@@ -205,26 +182,19 @@ export default function InventoryPageUI({
         </div>
       </header>
 
-      {/* MATRIX LAYOUT STREAM */}
+      {/* MAIN */}
       <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
         
-        {/* LEFT STREAM CONTAINER: TABLE */}
-        <section style={{
-          border: '1px solid #D3D3D3', borderRadius: 12, background: '#F1F1F1', padding: 24,
-          boxShadow: '0 4px 40px #ccbfbf', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box'
-        }}>
+        {/* LEFT: Table */}
+        <section style={{ border: '1px solid #D3D3D3', borderRadius: 12, background: '#F1F1F1', padding: 24, boxShadow: '0 4px 40px #ccbfbf', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ fontSize: 28, fontWeight: 700, color: '#000000', margin: 0 }}>Inventory</h2>
               <p style={{ fontSize: 12, color: '#8A7E72', margin: 0 }}>Manage your stock levels and ingredient details</p>
             </div>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input
-                type="text" placeholder="Search..." value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                style={{ padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '1px solid #D3D3D3', fontSize: 14, width: 240, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF' }}
-              />
-              <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Search">
+              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '1px solid #D3D3D3', fontSize: 14, width: 240, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF' }} />
+              <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer' }}>
                 <img src={searchIcon} alt="" style={{ width: 20, height: 20 }} />
               </button>
             </div>
@@ -264,45 +234,35 @@ export default function InventoryPageUI({
                         const isDelSelected = selectedIds.has(item.ingredient_id);
                         const isEditSelected = selectedIngredient?.ingredient_id === item.ingredient_id;
                         
-                        let rowBg = '';
-                        let textStyleColor = '#000000';
-                        
-                        if (actionView === 'edit' && isEditSelected) {
-                          rowBg = '#D1915F';
-                          textStyleColor = '#FFFFFF';
-                        }
+                        let trClass = 'inventory-row';
+                        if (actionView === 'delete' && isDelSelected) trClass += ' del-selected';
+                        if (actionView === 'edit' && isEditSelected) trClass += ' edit-selected';
 
                         const handleRowClick = () => {
-                          if (actionView === 'delete') {
-                            onToggleSelect(item);
-                          } else if (actionView === 'edit' || actionView === 'menu') {
+                          if (!isAdmin) return;
+                          if (actionView === 'delete') onToggleSelect(item);
+                          else if (actionView === 'edit' || actionView === 'menu') {
                             onSelectIngredient(item);
                             if (actionView === 'menu') setActionView('edit');
                           }
                         };
 
+                        const textColor = (actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected) ? '#FFFFFF' : '#000000';
+
                         return (
-                          <tr
-                            key={item.ingredient_id}
-                            onClick={handleRowClick}
-                            className={`inventory-row${actionView === 'delete' && isDelSelected ? ' del-selected' : ''}`}
-                            style={{ cursor: 'pointer', backgroundColor: rowBg }}
-                          >
-                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.ingredient_id}</td>
-                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}><strong>{item.ingredient_name}</strong></td>
-                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
-                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
-                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
+                          <tr key={item.ingredient_id} onClick={handleRowClick} className={trClass} style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.ingredient_id}</td>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}><strong>{item.ingredient_name}</strong></td>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
                             <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
-                              <span style={{
-                                fontWeight: 700, fontSize: 12,
-                                color: (actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected) ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29')
-                              }}>
+                              <span style={{ fontWeight: 700, fontSize: 12, color: ((actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected)) ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29') }}>
                                 {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
                                 {item.stock_status}
                               </span>
                             </td>
-                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}</td>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}</td>
                           </tr>
                         );
                       })}
@@ -321,59 +281,44 @@ export default function InventoryPageUI({
           </div>
         </section>
 
-        {/* RIGHT STREAM CONTAINER: ACTIONS/NOTIFICATIONS */}
-        <aside style={{
-          display: 'flex', flexDirection: 'column', background: '#F1F1F1',
-          border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf',
-          overflow: 'hidden', position: 'relative', paddingBottom: 80
-        }}>
-          <h2 style={{
-            fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px',
-            borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center'
-          }}>
+        {/* RIGHT: Actions Panel / Notifications Panel */}
+        <aside style={{ display: 'flex', flexDirection: 'column', background: '#F1F1F1', border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf', overflow: 'hidden', position: 'relative', paddingBottom: 80 }}>
+          <h2 style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px', borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>
             {isAdmin ? 'Actions' : 'Notifications'}
           </h2>
 
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1 }}>
+            
+            {/* 🔴 IF ADMIN: SHOW ACTIONS MENU & FORMS 🔴 */}
             {isAdmin ? (
               <>
-                {/* MENU VIEW */}
                 {actionView === 'menu' && (
                   <>
                     <button onClick={() => openView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
-                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={addIcon} alt="" style={{ width: 34, height: 34 }} />
-                      </div>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="" style={{ width: 34, height: 34 }} /></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F' }}>ADD</span>
                     </button>
                     <button onClick={() => openView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
-                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={editIcon} alt="" style={{ width: 34, height: 34 }} />
-                      </div>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={editIcon} alt="" style={{ width: 34, height: 34 }} /></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F' }}>EDIT</span>
                     </button>
                     <button onClick={() => openView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', boxSizing: 'border-box' }}>
-                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <img src={deleteIcon} alt="" style={{ width: 34, height: 34 }} />
-                      </div>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="" style={{ width: 34, height: 34 }} /></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span>
                     </button>
                   </>
                 )}
 
-                {/* ADD INGREDIENT SUB-PANEL */}
                 {actionView === 'add' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
-                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
-                      ← Back to Dashboard
-                    </button>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
                     {formError && (
                       <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
                         <AlertTriangle style={{ width: 14, height: 14 }} />
                         <span style={{ fontWeight: 600 }}>{formError}</span>
                       </div>
                     )}
-                    <form onSubmit={async (e) => { e.preventDefault(); if (await onFormSubmit(e)) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <form onSubmit={async (e) => { e.preventDefault(); const ok = await onFormSubmit(e); if (ok) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                       <div>
                         <label style={labelStyle}>Item Name</label>
                         <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Espresso Beans" style={inputStyle} />
@@ -387,101 +332,61 @@ export default function InventoryPageUI({
                         </select>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                        <div>
-                          <label style={labelStyle}>Quantity</label>
-                          <input type="number" step="0.01" value={formQuantity} onChange={e => setFormQuantity(e.target.value)} placeholder="0.00" style={inputStyle} />
-                        </div>
+                        <div><label style={labelStyle}>Quantity</label><input type="number" step="0.01" value={formQuantity} onChange={e => setFormQuantity(e.target.value)} style={inputStyle} /></div>
                         <div>
                           <label style={labelStyle}>Unit</label>
                           <select value={formUnit} onChange={e => setFormUnit(e.target.value)} style={inputStyle}>
-                            <option value="kg">kg</option>
-                            <option value="L">L</option>
-                            <option value="pcs">pcs</option>
-                            <option value="oz">oz</option>
+                            <option value="kg">kg</option><option value="L">L</option><option value="pcs">pcs</option><option value="oz">oz</option>
                           </select>
                         </div>
                       </div>
-                      <div>
-                        <label style={labelStyle}>Threshold</label>
-                        <input type="number" value={formThreshold} onChange={e => setFormThreshold(e.target.value)} placeholder="5" style={inputStyle} />
-                      </div>
+                      <div><label style={labelStyle}>Threshold</label><input type="number" value={formThreshold} onChange={e => setFormThreshold(e.target.value)} style={inputStyle} /></div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                        <div>
-                          <label style={labelStyle}>Stock Date</label>
-                          <input type="date" value={formStockDate} onChange={e => setFormStockDate(e.target.value)} style={inputStyle} />
-                        </div>
-                        <div>
-                          <label style={labelStyle}>Expiry Date</label>
-                          <input type="date" value={formExpiryDate} onChange={e => setFormExpiryDate(e.target.value)} style={inputStyle} />
-                        </div>
+                        <div><label style={labelStyle}>Stock Date</label><input type="date" value={formStockDate} onChange={e => setFormStockDate(e.target.value)} style={inputStyle} /></div>
+                        <div><label style={labelStyle}>Expiry Date</label><input type="date" value={formExpiryDate} onChange={e => setFormExpiryDate(e.target.value)} style={inputStyle} /></div>
                       </div>
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-                        <button type="submit" style={{ ...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}>
-                          Confirm
-                        </button>
+                        <button type="submit" style={{ ...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}>Confirm</button>
                       </div>
                     </form>
                   </div>
                 )}
 
-                {/* EDIT INGREDIENT SUB-PANEL */}
                 {actionView === 'edit' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
                     <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
-                    <div style={{ marginBottom: 4 }}>
+                    <div>
                       <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E' }}>EDIT INGREDIENT</h3>
-                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>
-                        {selectedIngredient ? 'All fields must be filled up with complete and correct information.' : 'Select the ingredient you need to edit on the table.'}
-                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>{selectedIngredient ? 'All fields must be filled up with complete and correct information.' : 'Select the ingredient you need to edit on the table.'}</p>
                     </div>
                     {editError && (
-                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                        <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
+                        <AlertTriangle style={{ width: 14, height: 14 }} />
                         <span style={{ fontWeight: 600 }}>{editError}</span>
                       </div>
                     )}
                     {selectedIngredient ? (
-                      <form onSubmit={async (e) => { e.preventDefault(); if (await onEditSubmit(e)) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <div>
-                          <label style={labelStyle}>Name</label>
-                          <input type="text" value={editName} onChange={e => setEditName(e.target.value)} style={inputStyle} />
-                        </div>
+                      <form onSubmit={async (e) => { e.preventDefault(); const ok = await onEditSubmit(e); if (ok) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div><label style={labelStyle}>Name</label><input type="text" value={editName} onChange={e => setEditName(e.target.value)} style={inputStyle} /></div>
                         <div>
                           <label style={labelStyle}>Category</label>
                           <select value={editCategory} onChange={e => setEditCategory(e.target.value)} style={inputStyle}>
-                            <option value="INGREDIENTS">INGREDIENTS</option>
-                            <option value="PACKAGING">PACKAGING</option>
-                            <option value="CONSUMABLES">CONSUMABLES</option>
+                            <option value="INGREDIENTS">INGREDIENTS</option><option value="PACKAGING">PACKAGING</option><option value="CONSUMABLES">CONSUMABLES</option>
                           </select>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <div>
-                            <label style={labelStyle}>Quantity</label>
-                            <input type="number" step="0.01" value={editQuantity} onChange={e => setEditQuantity(e.target.value)} style={inputStyle} />
-                          </div>
+                          <div><label style={labelStyle}>Quantity</label><input type="number" step="0.01" value={editQuantity} onChange={e => setEditQuantity(e.target.value)} style={inputStyle} /></div>
                           <div>
                             <label style={labelStyle}>Unit of Measurement</label>
                             <select value={editUnit} onChange={e => setEditUnit(e.target.value)} style={inputStyle}>
-                              <option value="kg">kg</option>
-                              <option value="L">L</option>
-                              <option value="pcs">pcs</option>
-                              <option value="oz">oz</option>
+                              <option value="kg">kg</option><option value="L">L</option><option value="pcs">pcs</option><option value="oz">oz</option>
                             </select>
                           </div>
                         </div>
-                        <div>
-                          <label style={labelStyle}>Threshold</label>
-                          <input type="number" value={editThreshold} onChange={e => setEditThreshold(e.target.value)} style={inputStyle} />
-                        </div>
+                        <div><label style={labelStyle}>Threshold</label><input type="number" value={editThreshold} onChange={e => setEditThreshold(e.target.value)} style={inputStyle} /></div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <div>
-                            <label style={labelStyle}>Stock Date</label>
-                            <input type="date" value={editStockDate} onChange={e => setEditStockDate(e.target.value)} style={inputStyle} />
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Expiration Date</label>
-                            <input type="date" value={editExpiryDate} onChange={e => setEditExpiryDate(e.target.value)} style={inputStyle} />
-                          </div>
+                          <div><label style={labelStyle}>Stock Date</label><input type="date" value={editStockDate} onChange={e => setEditStockDate(e.target.value)} style={inputStyle} /></div>
+                          <div><label style={labelStyle}>Expiration Date</label><input type="date" value={editExpiryDate} onChange={e => setEditExpiryDate(e.target.value)} style={inputStyle} /></div>
                         </div>
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                           <button type="button" onClick={goBackToMenu} style={{ ...submitBtnStyle, backgroundColor: '#E5E5E5', color: '#1E1E1E', marginTop: 0, borderRadius: '0 0 0 12px' }}>Cancel</button>
@@ -496,71 +401,42 @@ export default function InventoryPageUI({
                   </div>
                 )}
 
-                {/* DELETE INGREDIENT SUB-PANEL */}
                 {actionView === 'delete' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
-                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
-                      ← Back to Dashboard
-                    </button>
-
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
                     <div>
                       <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E', textTransform: 'uppercase' }}>DELETE INGREDIENT</h3>
-                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>
-                        Click rows on the table to select. Click again to deselect.
-                      </p>
+                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>Click rows on the table to select. Click again to deselect.</p>
                     </div>
-
                     {deleteError && (
                       <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
                         <AlertTriangle style={{ width: 14, height: 14 }} />
                         <span style={{ fontWeight: 600 }}>{deleteError}</span>
                       </div>
                     )}
-
                     {selectedCount > 0 ? (
                       <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 6, background: '#FFFFFF', padding: 16, borderRadius: 12, border: '1px solid #E5E5E5', overflowY: 'auto' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: '#8A7E72', textTransform: 'uppercase' }}>
-                            {selectedCount} item{selectedCount > 1 ? 's' : ''} selected
-                          </span>
-                          <button onClick={onClearSelection} style={{ background: 'none', border: 'none', fontSize: 11, color: '#FF2C2C', cursor: 'pointer', fontWeight: 600 }}>
-                            Clear all
-                          </button>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#8A7E72', textTransform: 'uppercase' }}>{selectedCount} item{selectedCount > 1 ? 's' : ''} selected</span>
+                          <button onClick={onClearSelection} style={{ background: 'none', border: 'none', fontSize: 11, color: '#FF2C2C', cursor: 'pointer', fontWeight: 600 }}>Clear all</button>
                         </div>
-                        {filteredIngredients
-                          .filter(i => selectedIds.has(i.ingredient_id))
-                          .map(i => (
-                            <div key={i.ingredient_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F1F1F1' }}>
-                              <div>
-                                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E1E1E' }}>{i.ingredient_name}</div>
-                                <div style={{ fontSize: 11, color: '#8A7E72' }}>#{i.ingredient_id} · {i.stock_quantity} {i.measurement_unit}</div>
-                              </div>
-                              <button onClick={() => onToggleSelect(i)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', fontSize: 16, lineHeight: 1 }} aria-label={`Remove ${i.ingredient_name}`}>×</button>
+                        {filteredIngredients.filter(i => selectedIds.has(i.ingredient_id)).map(i => (
+                          <div key={i.ingredient_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F1F1F1' }}>
+                            <div>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: '#1E1E1E' }}>{i.ingredient_name}</div>
+                              <div style={{ fontSize: 11, color: '#8A7E72' }}>#{i.ingredient_id} · {i.stock_quantity} {i.measurement_unit}</div>
                             </div>
-                          ))
-                        }
+                            <button onClick={() => onToggleSelect(i)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', fontSize: 16, lineHeight: 1 }}>×</button>
+                          </div>
+                        ))}
                       </div>
                     ) : (
                       <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
                         No rows selected. Click any ingredient row on the table.
                       </div>
                     )}
-
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-                      <button
-                        type="button"
-                        onClick={async () => { if (await onDeleteSubmit()) goBackToMenu(); }}
-                        disabled={selectedCount === 0}
-                        style={{
-                          ...submitBtnStyle,
-                          backgroundColor: '#FF2C2C',
-                          textTransform: 'uppercase',
-                          marginTop: 0,
-                          borderRadius: '0 0 12px 12px',
-                          opacity: selectedCount > 0 ? 1 : 0.5,
-                          cursor: selectedCount > 0 ? 'pointer' : 'not-allowed'
-                        }}
-                      >
+                      <button type="button" onClick={async () => { const ok = await onDeleteSubmit(); if (ok) goBackToMenu(); }} disabled={selectedCount === 0} style={{ ...submitBtnStyle, backgroundColor: '#FF2C2C', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px', opacity: selectedCount > 0 ? 1 : 0.5, cursor: selectedCount > 0 ? 'pointer' : 'not-allowed' }}>
                         {selectedCount > 1 ? `Delete ${selectedCount} Items` : 'Delete Product/s'}
                       </button>
                     </div>
@@ -568,16 +444,16 @@ export default function InventoryPageUI({
                 )}
               </>
             ) : (
-              <div style={{ flexGrow: 1 }} />
+              /* 🔵 IF STAFF: ONLY SHOW NOTIFICATIONS 🔵 */
+              <div style={{ flexGrow: 1 }}>
+                {children}
+              </div>
             )}
-            
-            {/* Realtime channel widget displays seamlessly here for Employee access parameters */}
-            {children}
           </div>
         </aside>
       </main>
 
-      {/* FOOTER NAVIGATION */}
+      {/* FOOTER NAV */}
       <nav style={{ background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf', width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE', marginTop: 16 }}>
         {[
           { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },

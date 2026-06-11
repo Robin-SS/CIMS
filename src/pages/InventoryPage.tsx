@@ -19,43 +19,35 @@ export default function InventoryPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionView, setActionView] = useState<ActionView>('menu');
   
-  // Shared structural selectors
+  // Selection States
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const handleToggleSelect = (item: Ingredient) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(item.ingredient_id)) {
-        next.delete(item.ingredient_id);
-      } else {
-        next.add(item.ingredient_id);
-      }
+      if (next.has(item.ingredient_id)) next.delete(item.ingredient_id);
+      else next.add(item.ingredient_id);
       return next;
     });
   };
 
-  const handleClearSelection = () => {
-    setSelectedIds(new Set());
-  };
+  const handleClearSelection = () => setSelectedIds(new Set());
 
   return (
     <IngredientsTable ingredients={ingredients}>
       {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
-        /* Layer 1: Inject Edit State Controllers */
         <EditIngredientForm 
           selectedIngredient={selectedIngredient} 
           onSuccess={() => setSelectedIngredient(null)}
         >
           {(editProps) => (
-            /* Layer 2: Inject Bulk Delete State Controllers */
             <DeleteIngredientForm
               selectedIds={selectedIds}
               ingredients={ingredients}
               onSuccess={handleClearSelection}
             >
               {(deleteProps) => (
-                /* Layer 3: Inject Inbound Add State Controllers */
                 <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
                   {(addProps) => (
                     <InventoryPageUI
@@ -67,18 +59,15 @@ export default function InventoryPage() {
                       sortDirection={sortDirection}
                       onSort={handleSort}
                       
-                      // Shared Layout Navigation View Hook
                       actionView={actionView}
                       setActionView={setActionView}
-
-                      // Selection Array Mappings
                       selectedIngredient={selectedIngredient}
                       onSelectIngredient={setSelectedIngredient}
                       selectedIds={selectedIds}
                       onToggleSelect={handleToggleSelect}
                       onClearSelection={handleClearSelection}
 
-                      // Add Form Parameters
+                      // Form Bindings
                       formError={addProps.formError}
                       formName={addProps.formName}
                       setFormName={addProps.setFormName}
@@ -93,10 +82,9 @@ export default function InventoryPage() {
                       formStockDate={addProps.formStockDate}
                       setFormStockDate={addProps.setFormStockDate}
                       formExpiryDate={addProps.formExpiryDate}
-                      setFormExpiryDate={addProps.setFormExpiryDate}
+                      setFormExpiryDate={addProps.setFormExpiryDate} // <--- Make sure this line exists
                       onFormSubmit={addProps.handleAddIngredient}
                       
-                      // Edit Form Parameters
                       editError={editProps.editError}
                       editName={editProps.editName}
                       setEditName={editProps.setEditName}
@@ -113,8 +101,7 @@ export default function InventoryPage() {
                       editExpiryDate={editProps.editExpiryDate}
                       setEditExpiryDate={editProps.setEditExpiryDate}
                       onEditSubmit={editProps.handleEditIngredient}
-
-                      // Delete Form Parameters
+                      
                       deleteError={deleteProps.deleteError}
                       onDeleteSubmit={deleteProps.handleDeleteIngredients}
                     >
