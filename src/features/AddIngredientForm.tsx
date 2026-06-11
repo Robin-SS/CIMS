@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { supabase } from '../supabaseClient';
+import { useInventory } from '../context/InventoryContext';
 
 interface AddIngredientFormProps {
   onSuccess: () => void;
@@ -19,66 +19,80 @@ interface AddIngredientFormProps {
     setFormStockDate: (v: string) => void;
     formExpiryDate: string;
     setFormExpiryDate: (v: string) => void;
-    handleAddIngredient: (e: React.FormEvent) => Promise<void>;
+    handleAddIngredient: (e: React.FormEvent) => Promise<boolean>; // Explicit Promise<boolean> signature
   }) => React.ReactNode;
 }
 
 export default function AddIngredientForm({ onSuccess, children }: AddIngredientFormProps) {
+  const { ingredients, addIngredient } = useInventory(); 
+  
   const [formError, setFormError] = useState('');
   const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState('Ingredients');
+  const [formCategory, setFormCategory] = useState('INGREDIENTS'); // Casing matches UI filter structures
   const [formQuantity, setFormQuantity] = useState('');
   const [formUnit, setFormUnit] = useState('pcs');
   const [formThreshold, setFormThreshold] = useState('');
   const [formStockDate, setFormStockDate] = useState(new Date().toISOString().split('T')[0]);
   const [formExpiryDate, setFormExpiryDate] = useState('');
 
-  const handleAddIngredient = async (e: React.FormEvent) => {
+  const handleAddIngredient = async (e: React.FormEvent): Promise<boolean> => {
     e.preventDefault();
     setFormError('');
 
+    // Client-side duplicate check execution
+    const isDuplicate = ingredients.some(
+      (item) => item.ingredient_name.trim().toLowerCase() === formName.trim().toLowerCase()
+    );
+
+    if (isDuplicate) {
+      setFormError('Validation Error: An ingredient matching this exact name already exists.');
+      return false; // Terminates execution and explicitly reports failure flag
+    }
+
+    // Missing fields validation check
     if (!formName.trim() || !formQuantity || !formUnit || !formThreshold || !formStockDate || !formExpiryDate) {
       setFormError('Validation Error: All fields are explicitly required.');
-      return;
+      return false;
     }
 
     const parsedQty = parseFloat(formQuantity);
     const parsedThreshold = parseInt(formThreshold);
 
+    // Negative parameters validation check
     if (parsedQty < 0 || parsedThreshold < 0) {
       setFormError('Validation Error: Quantity and Threshold values cannot be negative.');
-      return;
+      return false;
     }
 
+    // Chronological order validation check
     if (new Date(formExpiryDate) <= new Date(formStockDate)) {
       setFormError('Validation Error: Expiration Date must be scheduled after the inbound Stock Date.');
-      return;
+      return false;
     }
 
-    const { error } = await supabase.from('ingredients').insert([
-      {
-        ingredient_name: formName.trim(),
-        ingredient_category: formCategory,
-        stock_quantity: parsedQty,
-        measurement_unit: formUnit,
-        threshold: parsedThreshold,
-        stock_date: formStockDate,
-        expiry_date: formExpiryDate,
-      },
-    ]);
+    // Dispatch payload directly to context bucket architecture
+    const success = await addIngredient({
+      ingredient_name: formName.trim(),
+      ingredient_category: formCategory,
+      stock_quantity: parsedQty,
+      measurement_unit: formUnit,
+      threshold: parsedThreshold,
+      stock_date: formStockDate,
+      expiry_date: formExpiryDate,
+    });
 
-    if (error) {
-      if (error.code === '23505') {
-        setFormError('Database Alert: An ingredient matching this exact name already exists.');
-      } else {
-        setFormError(`Execution Error: ${error.message}`);
-      }
+    if (!success) {
+      setFormError('Database Alert: Could not save item. Ensure the name is unique.');
+      return false;
     } else {
+      // Clear form inputs cleanly upon successful persistence sequence
       setFormName('');
       setFormQuantity('');
       setFormThreshold('');
       setFormExpiryDate('');
-      onSuccess();
+      
+      onSuccess(); // Close modal drawer view
+      return true; // Reports back absolute success status
     }
   };
 

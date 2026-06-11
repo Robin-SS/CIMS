@@ -1,43 +1,27 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '../supabaseClient';
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-
+import { useInventory } from '../context/InventoryContext';
+import type { Ingredient } from '../types/InventoryItem';
 
 import InventoryPageUI from '../components/InventoryPageUI';
 import IngredientsTable from '../features/IngredientsTable';
 import AddIngredientForm from '../features/AddIngredientForm';
 import NotificationPanel from '../features/NotificationPanel';
 
-interface Ingredient {
-  ingredient_id: number;
-  ingredient_name: string;
-  ingredient_category: string;
-  stock_quantity: number;
-  measurement_unit: string;
-  threshold: number;
-  stock_status: string;
-  stock_date: string;
-  expiry_date: string;  
-}
+type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const { ingredients } = useInventory();
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
-
-  const fetchIngredients = async () => {
-    const { data, error } = await supabase.from('ingredients').select('*');
-    if (!error && data) setIngredients(data);
-  };
-
-  useEffect(() => {
-    fetchIngredients();
-  }, []);
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+  const [actionView, setActionView] = useState<ActionView>('menu');
 
   return (
     <IngredientsTable ingredients={ingredients}>
       {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
-        <AddIngredientForm onSuccess={() => { setIsModalOpen(false); fetchIngredients(); }}>
+        <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
           {(formProps) => (
             <InventoryPageUI
               userRole={user?.role}
@@ -47,6 +31,14 @@ export default function InventoryPage() {
               sortColumn={sortColumn}
               sortDirection={sortDirection}
               onSort={handleSort}
+              
+              // Shared State Control
+              actionView={actionView}
+              setActionView={setActionView}
+              selectedIngredient={selectedIngredient}
+              onSelectIngredient={setSelectedIngredient}
+
+              // Add Form Bindings
               formError={formProps.formError}
               formName={formProps.formName}
               setFormName={formProps.setFormName}
@@ -63,12 +55,32 @@ export default function InventoryPage() {
               formExpiryDate={formProps.formExpiryDate}
               setFormExpiryDate={formProps.setFormExpiryDate}
               onFormSubmit={formProps.handleAddIngredient}
+              
+              // Fallback placeholders for Edit/Delete to prevent layout breaks
+              editError=""
+              editName=""
+              setEditName={() => {}}
+              editCategory=""
+              setEditCategory={() => {}}
+              editQuantity=""
+              setEditQuantity={() => {}}
+              editUnit=""
+              setEditUnit={() => {}}
+              editThreshold=""
+              setEditThreshold={() => {}}
+              editStockDate=""
+              setEditStockDate={() => {}}
+              editExpiryDate=""
+              setEditExpiryDate={() => {}}
+              onEditSubmit={async () => true}
+              deleteError=""
+              onDeleteSubmit={async () => true}
             >
+              {/* Passed down correctly to the right-side layout stream */}
               <NotificationPanel />
             </InventoryPageUI>
           )}
         </AddIngredientForm>
-        
       )}
     </IngredientsTable>
   );
