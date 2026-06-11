@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import type { Ingredient } from '../types/InventoryItem';
 
-// Icons for Bottom Navigation Bar and Actions Panel (in .png format)
 import cafeLogo    from '../assets/cafeLogo.png';
 import homeIcon    from '../assets/homeIcon.png';
 import posIcon     from '../assets/posIcon.png';
@@ -13,7 +12,7 @@ import addIcon     from '../assets/addIcon.png';
 import editIcon    from '../assets/editIcon.png';
 import deleteIcon  from '../assets/deleteIcon.png';
 import adminIcon   from '../assets/adminIcon.png';
-import searchIcon from '../assets/searchIcon.png';
+import searchIcon  from '../assets/searchIcon.png';
 
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
@@ -29,9 +28,15 @@ interface InventoryPageUIProps {
 
   actionView: ActionView;
   setActionView: (view: ActionView) => void;
+
+  // Multi-select & single item shared hooks
   selectedIngredient: Ingredient | null;
   onSelectIngredient: (item: Ingredient | null) => void;
+  selectedIds: Set<number>;
+  onToggleSelect: (item: Ingredient) => void;
+  onClearSelection: () => void;
 
+  // Add Form Bindings
   formError: string;
   formName: string;
   setFormName: (v: string) => void;
@@ -49,6 +54,7 @@ interface InventoryPageUIProps {
   setFormExpiryDate: (v: string) => void;
   onFormSubmit: (e: React.FormEvent) => Promise<boolean>;
 
+  // Edit Form Bindings
   editError: string;
   editName: string;
   setEditName: (v: string) => void;
@@ -66,6 +72,7 @@ interface InventoryPageUIProps {
   setEditExpiryDate: (v: string) => void;
   onEditSubmit: (e: React.FormEvent) => Promise<boolean>;
 
+  // Delete Form Bindings
   deleteError: string;
   onDeleteSubmit: () => Promise<boolean>;
   
@@ -74,7 +81,7 @@ interface InventoryPageUIProps {
 
 export default function InventoryPageUI({
   userRole,
-  isModalOpen: _isModalOpen, 
+  isModalOpen: _isModalOpen,
   setIsModalOpen,
   sortedIngredients,
   sortColumn,
@@ -84,68 +91,56 @@ export default function InventoryPageUI({
   setActionView,
   selectedIngredient,
   onSelectIngredient,
+  selectedIds,
+  onToggleSelect,
+  onClearSelection,
   formError,
-  formName,
-  setFormName,
-  formCategory,
-  setFormCategory,
-  formQuantity,
-  setFormQuantity,
-  formUnit,
-  setFormUnit,
-  formThreshold,
-  setFormThreshold,
-  formStockDate,
-  setFormStockDate,
-  formExpiryDate,
-  setFormExpiryDate,
+  formName, setFormName,
+  formCategory, setFormCategory,
+  formQuantity, setFormQuantity,
+  formUnit, setFormUnit,
+  formThreshold, setFormThreshold,
+  formStockDate, setFormStockDate,
+  formExpiryDate, setFormExpiryDate,
   onFormSubmit,
   editError,
-  editName,
-  setEditName,
-  editCategory,
-  setEditCategory,
-  editQuantity,
-  setEditQuantity,
-  editUnit,
-  setEditUnit,
-  editThreshold,
-  setEditThreshold,
-  editStockDate,
-  setEditStockDate,
-  editExpiryDate,
-  setEditExpiryDate,
+  editName, setEditName,
+  editCategory, setEditCategory,
+  editQuantity, setEditQuantity,
+  editUnit, setEditUnit,
+  editThreshold, setEditThreshold,
+  editStockDate, setEditStockDate,
+  editExpiryDate, setEditExpiryDate,
   onEditSubmit,
-  deleteError: _deleteError,
-  onDeleteSubmit: _onDeleteSubmit,
+  deleteError,
+  onDeleteSubmit,
   children,
 }: InventoryPageUIProps) {
-  
+
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
+  const isAdmin = userRole?.toLowerCase() === 'admin';
   const CATEGORY_ORDER = ['INGREDIENTS', 'PACKAGING', 'CONSUMABLES'];
 
-  const filteredIngredients = (sortedIngredients || []).filter(item => {
-    if (!item) return false;
+  const filteredIngredients = sortedIngredients.filter(item => {
     const q = searchQuery.toLowerCase();
-    const name = (item.ingredient_name || '').toLowerCase();
-    const id = (item.ingredient_id || '').toString();
-    const status = (item.stock_status || '').toLowerCase();
-    return name.includes(q) || id.includes(q) || status.includes(q);
+    return (
+      item.ingredient_name.toLowerCase().includes(q) ||
+      item.ingredient_id.toString().includes(q) ||
+      item.stock_status.toLowerCase().includes(q)
+    );
   });
 
   const openView = (view: ActionView) => {
     setActionView(view);
     setIsModalOpen(view === 'add');
-    if (view === 'menu') {
-      onSelectIngredient(null);
-    }
+    onClearSelection();
   };
 
   const goBackToMenu = () => {
     setActionView('menu');
     setIsModalOpen(false);
-    onSelectIngredient(null);
+    onClearSelection();
   };
 
   const renderSortIcon = (column: keyof Ingredient) => {
@@ -159,25 +154,34 @@ export default function InventoryPageUI({
     display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
     letterSpacing: 0.5, color: '#D1915F', marginBottom: 4
   };
-
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 12px', borderRadius: 12, border: '1px solid #D1915F',
     fontSize: 13, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF', boxSizing: 'border-box'
   };
-
   const submitBtnStyle: React.CSSProperties = {
-    width: '100%', padding: '10px 0', background: '#D1915F', color: '#FFFFFF',
+    width: '100%', padding: '15px 0', background: '#D1915F', color: '#FFFFFF',
     fontWeight: 700, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer', marginTop: 4
   };
+
+  const selectedCount = selectedIds.size;
 
   return (
     <div style={{
       minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif",
       padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box'
     }}>
-      <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');
+        .inventory-row { transition: background-color 0.15s ease; }
+        .inventory-row:hover { background-color: #FDFBF7; }
+        .inventory-row.del-selected,
+        .inventory-row.del-selected:hover {
+          background-color: #FF2C2C !important;
+          color: #FFFFFF;
+        }
+      `}</style>
 
-      {/* ====================[HEADER]==================== */}
+      {/* HEADER BAR */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} />
@@ -189,23 +193,22 @@ export default function InventoryPageUI({
             <span>cafe</span>
           </h1>
         </div>
-
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, background: 'white',
           padding: '15px 25px', borderRadius: 28, border: '1px solid #D3C9BE',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.04)', color: '#D1915F', fontWeight: 'bold',
-          fontSize: 20, textTransform: 'capitalize'
+          boxShadow: '0 2px 6px rgba(0,0,0,0.04)', color: '#D1915F', fontWeight: 'bold', fontSize: 20
         }}>
-          <div style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <span>{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase() : 'Guest'}</span>
         </div>
       </header>
 
-      {/* ====================[MAIN MATRIX WORKSPACE]==================== */}
+      {/* MATRIX LAYOUT STREAM */}
       <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
         
+        {/* LEFT STREAM CONTAINER: TABLE */}
         <section style={{
           border: '1px solid #D3D3D3', borderRadius: 12, background: '#F1F1F1', padding: 24,
           boxShadow: '0 4px 40px #ccbfbf', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box'
@@ -215,19 +218,13 @@ export default function InventoryPageUI({
               <h2 style={{ fontSize: 28, fontWeight: 700, color: '#000000', margin: 0 }}>Inventory</h2>
               <p style={{ fontSize: 12, color: '#8A7E72', margin: 0 }}>Manage your stock levels and ingredient details</p>
             </div>
-
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
+                type="text" placeholder="Search..." value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                style={{
-                  padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '1px solid #D3D3D3',
-                  fontSize: 14, width: 240, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF'
-                }}
+                style={{ padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '1px solid #D3D3D3', fontSize: 14, width: 240, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF' }}
               />
-              <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', color: '#D1915F', fontSize: 16, cursor: 'pointer' }} aria-label="Search">
+              <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer' }} aria-label="Search">
                 <img src={searchIcon} alt="" style={{ width: 20, height: 20 }} />
               </button>
             </div>
@@ -238,13 +235,13 @@ export default function InventoryPageUI({
               <thead>
                 <tr>
                   {([
-                    ['ingredient_id',       'Item ID'],
-                    ['ingredient_name',     'Name'],
-                    ['stock_quantity',      'Qty'],
-                    ['measurement_unit',    'Unit'],
-                    ['threshold',           'Threshold'],
-                    ['stock_status',        'Stock Status'],
-                    ['expiry_date',         'Expiration Date'],
+                    ['ingredient_id',    'Item ID'],
+                    ['ingredient_name',  'Name'],
+                    ['stock_quantity',   'Qty'],
+                    ['measurement_unit', 'Unit'],
+                    ['threshold',        'Threshold'],
+                    ['stock_status',     'Stock Status'],
+                    ['expiry_date',      'Expiration Date'],
                   ] as [keyof Ingredient, string][]).map(([col, label]) => (
                     <th key={col} onClick={() => onSort(col)} style={{ backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px', textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5, borderBottom: '1px solid #D3D3D3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
                       {label}{renderSortIcon(col)}
@@ -253,104 +250,126 @@ export default function InventoryPageUI({
                 </tr>
               </thead>
               <tbody>
-                {filteredIngredients.length === 0 ? (
+                {CATEGORY_ORDER.map(category => {
+                  const items = filteredIngredients.filter(i => i.ingredient_category.toUpperCase() === category);
+                  if (items.length === 0) return null;
+                  return (
+                    <Fragment key={category}>
+                      <tr>
+                        <td colSpan={7} style={{ backgroundColor: '#D1915F', color: '#ffffff', fontWeight: 700, padding: '8px 16px', fontSize: 13, letterSpacing: 0.5, textAlign: 'left' }}>
+                          {category}
+                        </td>
+                      </tr>
+                      {items.map((item) => {
+                        const isDelSelected = selectedIds.has(item.ingredient_id);
+                        const isEditSelected = selectedIngredient?.ingredient_id === item.ingredient_id;
+                        
+                        let rowBg = '';
+                        let textStyleColor = '#000000';
+                        
+                        if (actionView === 'edit' && isEditSelected) {
+                          rowBg = '#D1915F';
+                          textStyleColor = '#FFFFFF';
+                        }
+
+                        const handleRowClick = () => {
+                          if (actionView === 'delete') {
+                            onToggleSelect(item);
+                          } else if (actionView === 'edit' || actionView === 'menu') {
+                            onSelectIngredient(item);
+                            if (actionView === 'menu') setActionView('edit');
+                          }
+                        };
+
+                        return (
+                          <tr
+                            key={item.ingredient_id}
+                            onClick={handleRowClick}
+                            className={`inventory-row${actionView === 'delete' && isDelSelected ? ' del-selected' : ''}`}
+                            style={{ cursor: 'pointer', backgroundColor: rowBg }}
+                          >
+                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.ingredient_id}</td>
+                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}><strong>{item.ingredient_name}</strong></td>
+                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
+                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
+                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
+                            <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
+                              <span style={{
+                                fontWeight: 700, fontSize: 12,
+                                color: (actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected) ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29')
+                              }}>
+                                {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
+                                {item.stock_status}
+                              </span>
+                            </td>
+                            <td style={{ padding: '14px 16px', color: actionView === 'delete' && isDelSelected ? '#FFFFFF' : textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}</td>
+                          </tr>
+                        );
+                      })}
+                    </Fragment>
+                  );
+                })}
+                {filteredIngredients.length === 0 && (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#8A7E72', fontStyle: 'italic' }}>
                       No inventory data matches your search query criteria.
                     </td>
                   </tr>
-                ) : (
-                  CATEGORY_ORDER.map(category => {
-                    const categoryItems = filteredIngredients.filter(item => 
-                      (item.ingredient_category || '').toUpperCase() === category
-                    );
-                    if (categoryItems.length === 0) return null;
-
-                    return (
-                      <Fragment key={category}>
-                        <tr>
-                          <td colSpan={7} style={{ backgroundColor: '#D1915F', color: '#ffffff', fontWeight: 700, padding: '8px 16px', fontSize: 13, letterSpacing: 0.5, textAlign: 'left'}}>
-                            {category}
-                          </td>
-                        </tr>
-                        {categoryItems.map((item) => {
-                          const isSelected = selectedIngredient?.ingredient_id === item.ingredient_id;
-                          let rowBg = '';
-                          let textStyleColor = '#000000';
-                          if (isSelected) {
-                            rowBg = actionView === 'delete' ? '#FF2C2C' : '#D1915F';
-                            textStyleColor = '#FFFFFF';
-                          }
-
-                          return (
-                            <tr 
-                              key={item.ingredient_id} 
-                              onClick={() => {
-                                if (actionView === 'delete' || actionView === 'edit' || actionView === 'menu') {
-                                  onSelectIngredient(item);
-                                  if (actionView === 'menu') setActionView('edit');
-                                }
-                              }}
-                              style={{ backgroundColor: rowBg, cursor: 'pointer', transition: 'background-color 0.15s ease' }}
-                              onMouseEnter={e => { if(!isSelected) e.currentTarget.style.backgroundColor = '#FDFBF7'; }}
-                              onMouseLeave={e => { if(!isSelected) e.currentTarget.style.backgroundColor = ''; }}
-                            >
-                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.ingredient_id}</td>
-                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}><strong>{item.ingredient_name}</strong></td>
-                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
-                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
-                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
-                              <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
-                                <span style={{ fontWeight: 700, fontSize: 12, color: isSelected ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29') }}>
-                                  {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
-                                  {item.stock_status}
-                                </span>
-                              </td>
-                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}</td>
-                            </tr>
-                          );
-                        })}
-                      </Fragment>
-                    );
-                  })
                 )}
               </tbody>
             </table>
           </div>
         </section>
 
-        {/* SIDEBAR CONTEXT OVERLAYS */}
-        <aside style={{ display: 'flex', flexDirection: 'column', background: '#F1F1F1', border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf', overflow: 'hidden', position: 'relative', paddingBottom: 80 }}>
-          <h2 style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px', borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>
-            {userRole?.toLowerCase() === 'admin' ? 'Actions' : 'Notifications'}
+        {/* RIGHT STREAM CONTAINER: ACTIONS/NOTIFICATIONS */}
+        <aside style={{
+          display: 'flex', flexDirection: 'column', background: '#F1F1F1',
+          border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf',
+          overflow: 'hidden', position: 'relative', paddingBottom: 80
+        }}>
+          <h2 style={{
+            fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px',
+            borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center'
+          }}>
+            {isAdmin ? 'Actions' : 'Notifications'}
           </h2>
 
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1 }}>
-            {userRole?.toLowerCase() === 'admin' ? (
+            {isAdmin ? (
               <>
+                {/* MENU VIEW */}
                 {actionView === 'menu' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                  <>
                     <button onClick={() => openView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}><img src={addIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /></div></div>
-                      <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', letterSpacing: 0.5 }}>ADD</span>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={addIcon} alt="" style={{ width: 34, height: 34 }} />
+                      </div>
+                      <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F' }}>ADD</span>
                     </button>
                     <button onClick={() => openView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}><img src={editIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /></div></div>
-                      <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', letterSpacing: 0.5 }}>EDIT</span>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={editIcon} alt="" style={{ width: 34, height: 34 }} />
+                      </div>
+                      <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F' }}>EDIT</span>
                     </button>
                     <button onClick={() => openView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', boxSizing: 'border-box' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}><img src={deleteIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /></div></div>
-                      <span style={{ fontSize: 25, fontWeight: 800, color: '#FF4A4A', letterSpacing: 0.5 }}>DELETE</span>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <img src={deleteIcon} alt="" style={{ width: 34, height: 34 }} />
+                      </div>
+                      <span style={{ fontSize: 25, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span>
                     </button>
-                  </div>
+                  </>
                 )}
 
+                {/* ADD INGREDIENT SUB-PANEL */}
                 {actionView === 'add' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
-                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
+                      ← Back to Dashboard
+                    </button>
                     {formError && (
-                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                        <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
+                        <AlertTriangle style={{ width: 14, height: 14 }} />
                         <span style={{ fontWeight: 600 }}>{formError}</span>
                       </div>
                     )}
@@ -397,15 +416,18 @@ export default function InventoryPageUI({
                         </div>
                       </div>
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-                        <button type="submit" style={{...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}>Confirm</button>
+                        <button type="submit" style={{ ...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}>
+                          Confirm
+                        </button>
                       </div>
                     </form>
                   </div>
                 )}
 
+                {/* EDIT INGREDIENT SUB-PANEL */}
                 {actionView === 'edit' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
-                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
                     <div style={{ marginBottom: 4 }}>
                       <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E' }}>EDIT INGREDIENT</h3>
                       <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>
@@ -474,9 +496,74 @@ export default function InventoryPageUI({
                   </div>
                 )}
 
+                {/* DELETE INGREDIENT SUB-PANEL */}
                 {actionView === 'delete' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>
+                      ← Back to Dashboard
+                    </button>
+
+                    <div>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E', textTransform: 'uppercase' }}>DELETE INGREDIENT</h3>
+                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>
+                        Click rows on the table to select. Click again to deselect.
+                      </p>
+                    </div>
+
+                    {deleteError && (
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
+                        <AlertTriangle style={{ width: 14, height: 14 }} />
+                        <span style={{ fontWeight: 600 }}>{deleteError}</span>
+                      </div>
+                    )}
+
+                    {selectedCount > 0 ? (
+                      <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 6, background: '#FFFFFF', padding: 16, borderRadius: 12, border: '1px solid #E5E5E5', overflowY: 'auto' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: '#8A7E72', textTransform: 'uppercase' }}>
+                            {selectedCount} item{selectedCount > 1 ? 's' : ''} selected
+                          </span>
+                          <button onClick={onClearSelection} style={{ background: 'none', border: 'none', fontSize: 11, color: '#FF2C2C', cursor: 'pointer', fontWeight: 600 }}>
+                            Clear all
+                          </button>
+                        </div>
+                        {filteredIngredients
+                          .filter(i => selectedIds.has(i.ingredient_id))
+                          .map(i => (
+                            <div key={i.ingredient_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F1F1F1' }}>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 700, color: '#1E1E1E' }}>{i.ingredient_name}</div>
+                                <div style={{ fontSize: 11, color: '#8A7E72' }}>#{i.ingredient_id} · {i.stock_quantity} {i.measurement_unit}</div>
+                              </div>
+                              <button onClick={() => onToggleSelect(i)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', fontSize: 16, lineHeight: 1 }} aria-label={`Remove ${i.ingredient_name}`}>×</button>
+                            </div>
+                          ))
+                        }
+                      </div>
+                    ) : (
+                      <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
+                        No rows selected. Click any ingredient row on the table.
+                      </div>
+                    )}
+
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+                      <button
+                        type="button"
+                        onClick={async () => { if (await onDeleteSubmit()) goBackToMenu(); }}
+                        disabled={selectedCount === 0}
+                        style={{
+                          ...submitBtnStyle,
+                          backgroundColor: '#FF2C2C',
+                          textTransform: 'uppercase',
+                          marginTop: 0,
+                          borderRadius: '0 0 12px 12px',
+                          opacity: selectedCount > 0 ? 1 : 0.5,
+                          cursor: selectedCount > 0 ? 'pointer' : 'not-allowed'
+                        }}
+                      >
+                        {selectedCount > 1 ? `Delete ${selectedCount} Items` : 'Delete Product/s'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </>
@@ -484,18 +571,19 @@ export default function InventoryPageUI({
               <div style={{ flexGrow: 1 }} />
             )}
             
+            {/* Realtime channel widget displays seamlessly here for Employee access parameters */}
             {children}
           </div>
         </aside>
       </main>
 
-      {/* FOOTER BAR MODULE */}
+      {/* FOOTER NAVIGATION */}
       <nav style={{ background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf', width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE', marginTop: 16 }}>
         {[
-          { label: 'HOME',           icon: homeIcon,       path: '/home',       active: false },
-          { label: 'POINT OF SALES', icon: posIcon,        path: '/pos',        active: false },
-          { label: 'INVENTORY',      icon: inventoryIcon,  path: '/inventory',  active: true  },
-          { label: 'INSIGHTS',       icon: insightsIcon,   path: '/insights',   active: false },
+          { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
+          { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: false },
+          { label: 'INVENTORY',      icon: inventoryIcon, path: '/inventory', active: true  },
+          { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
         ].map(({ label, icon, path, active }) => (
           <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '1px solid #D3C9BE' : '1px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 2px 4px #ccbfbf' : 'none' }}>
             <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} />

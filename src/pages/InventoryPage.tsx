@@ -7,6 +7,8 @@ import InventoryPageUI from '../components/InventoryPageUI';
 import IngredientsTable from '../features/IngredientsTable';
 import AddIngredientForm from '../features/AddIngredientForm';
 import EditIngredientForm from '../features/EditIngredientForm';
+import DeleteIngredientForm from '../features/DeleteIngredientForm';
+import NotificationPanel from '../features/NotificationPanel';
 
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
@@ -15,76 +17,113 @@ export default function InventoryPage() {
   const { ingredients } = useInventory();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionView, setActionView] = useState<ActionView>('menu');
+  
+  // Shared structural selectors
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
-  const [actionView, setActionView] = useState<ActionView>('menu'); // 1. Local state managed here
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const handleToggleSelect = (item: Ingredient) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.ingredient_id)) {
+        next.delete(item.ingredient_id);
+      } else {
+        next.add(item.ingredient_id);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
 
   return (
     <IngredientsTable ingredients={ingredients}>
       {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
+        /* Layer 1: Inject Edit State Controllers */
         <EditIngredientForm 
           selectedIngredient={selectedIngredient} 
           onSuccess={() => setSelectedIngredient(null)}
         >
           {(editProps) => (
-            <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
-              {(addProps) => (
-                <InventoryPageUI
-                  userRole={user?.role}
-                  isModalOpen={isModalOpen}
-                  setIsModalOpen={setIsModalOpen}
-                  sortedIngredients={sortedIngredients}
-                  sortColumn={sortColumn}
-                  sortDirection={sortDirection}
-                  onSort={handleSort}
-                  
-                  // 2. Shared State Control passed down
-                  actionView={actionView}
-                  setActionView={setActionView}
-                  selectedIngredient={selectedIngredient}
-                  onSelectIngredient={setSelectedIngredient}
+            /* Layer 2: Inject Bulk Delete State Controllers */
+            <DeleteIngredientForm
+              selectedIds={selectedIds}
+              ingredients={ingredients}
+              onSuccess={handleClearSelection}
+            >
+              {(deleteProps) => (
+                /* Layer 3: Inject Inbound Add State Controllers */
+                <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
+                  {(addProps) => (
+                    <InventoryPageUI
+                      userRole={user?.role}
+                      isModalOpen={isModalOpen}
+                      setIsModalOpen={setIsModalOpen}
+                      sortedIngredients={sortedIngredients}
+                      sortColumn={sortColumn}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                      
+                      // Shared Layout Navigation View Hook
+                      actionView={actionView}
+                      setActionView={setActionView}
 
-                  // Add Form State Properties
-                  formError={addProps.formError}
-                  formName={addProps.formName}
-                  setFormName={addProps.setFormName}
-                  formCategory={addProps.formCategory}
-                  setFormCategory={addProps.setFormCategory}
-                  formQuantity={addProps.formQuantity}
-                  setFormQuantity={addProps.setFormQuantity}
-                  formUnit={addProps.formUnit}
-                  setFormUnit={addProps.setFormUnit}
-                  formThreshold={addProps.formThreshold}
-                  setFormThreshold={addProps.setFormThreshold}
-                  formStockDate={addProps.formStockDate}
-                  setFormStockDate={addProps.setFormStockDate}
-                  formExpiryDate={addProps.formExpiryDate}
-                  setFormExpiryDate={addProps.setFormExpiryDate}
-                  onFormSubmit={addProps.handleAddIngredient}
-                  
-                  // Edit Form State Properties
-                  editError={editProps.editError}
-                  editName={editProps.editName}
-                  setEditName={editProps.setEditName}
-                  editCategory={editProps.editCategory}
-                  setEditCategory={editProps.setEditCategory}
-                  editQuantity={editProps.editQuantity}
-                  setEditQuantity={editProps.setEditQuantity}
-                  editUnit={editProps.editUnit}
-                  setEditUnit={editProps.setEditUnit}
-                  editThreshold={editProps.editThreshold}
-                  setEditThreshold={editProps.setEditThreshold}
-                  editStockDate={editProps.editStockDate}
-                  setEditStockDate={editProps.setEditStockDate}
-                  editExpiryDate={editProps.editExpiryDate}
-                  setEditExpiryDate={editProps.setEditExpiryDate}
-                  onEditSubmit={editProps.handleEditIngredient}
+                      // Selection Array Mappings
+                      selectedIngredient={selectedIngredient}
+                      onSelectIngredient={setSelectedIngredient}
+                      selectedIds={selectedIds}
+                      onToggleSelect={handleToggleSelect}
+                      onClearSelection={handleClearSelection}
 
-                  // 3. Fallback placeholders for Delete feature to satisfy TS types
-                  deleteError=""
-                  onDeleteSubmit={async () => true}
-                />
+                      // Add Form Parameters
+                      formError={addProps.formError}
+                      formName={addProps.formName}
+                      setFormName={addProps.setFormName}
+                      formCategory={addProps.formCategory}
+                      setFormCategory={addProps.setFormCategory}
+                      formQuantity={addProps.formQuantity}
+                      setFormQuantity={addProps.setFormQuantity}
+                      formUnit={addProps.formUnit}
+                      setFormUnit={addProps.setFormUnit}
+                      formThreshold={addProps.formThreshold}
+                      setFormThreshold={addProps.setFormThreshold}
+                      formStockDate={addProps.formStockDate}
+                      setFormStockDate={addProps.setFormStockDate}
+                      formExpiryDate={addProps.formExpiryDate}
+                      setFormExpiryDate={addProps.setFormExpiryDate}
+                      onFormSubmit={addProps.handleAddIngredient}
+                      
+                      // Edit Form Parameters
+                      editError={editProps.editError}
+                      editName={editProps.editName}
+                      setEditName={editProps.setEditName}
+                      editCategory={editProps.editCategory}
+                      setEditCategory={editProps.setEditCategory}
+                      editQuantity={editProps.editQuantity}
+                      setEditQuantity={editProps.setEditQuantity}
+                      editUnit={editProps.editUnit}
+                      setEditUnit={editProps.setEditUnit}
+                      editThreshold={editProps.editThreshold}
+                      setEditThreshold={editProps.setEditThreshold}
+                      editStockDate={editProps.editStockDate}
+                      setEditStockDate={editProps.setEditStockDate}
+                      editExpiryDate={editProps.editExpiryDate}
+                      setEditExpiryDate={editProps.setEditExpiryDate}
+                      onEditSubmit={editProps.handleEditIngredient}
+
+                      // Delete Form Parameters
+                      deleteError={deleteProps.deleteError}
+                      onDeleteSubmit={deleteProps.handleDeleteIngredients}
+                    >
+                      <NotificationPanel />
+                    </InventoryPageUI>
+                  )}
+                </AddIngredientForm>
               )}
-            </AddIngredientForm>
+            </DeleteIngredientForm>
           )}
         </EditIngredientForm>
       )}
