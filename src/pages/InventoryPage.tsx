@@ -6,7 +6,7 @@ import type { Ingredient } from '../types/InventoryItem';
 import InventoryPageUI from '../components/InventoryPageUI';
 import IngredientsTable from '../features/IngredientsTable';
 import AddIngredientForm from '../features/AddIngredientForm';
-import EditIngredientForm from '../features/EditIngredientForm'; // Import your new feature file
+import EditIngredientForm from '../features/EditIngredientForm';
 
 export default function InventoryPage() {
   const { user } = useAuth();
@@ -18,11 +18,13 @@ export default function InventoryPage() {
   return (
     <IngredientsTable ingredients={ingredients}>
       {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
+        /* Layer 1: Bind Edit Operation Logic */
         <EditIngredientForm 
           selectedIngredient={selectedIngredient} 
           onSuccess={() => setSelectedIngredient(null)}
         >
           {(editProps) => (
+            /* Layer 2: Bind Add Operation Logic */
             <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
               {(addProps) => (
                 <InventoryPageUI
@@ -34,11 +36,11 @@ export default function InventoryPage() {
                   sortDirection={sortDirection}
                   onSort={handleSort}
                   
-                  // Selection Props
+                  // Selection Control
                   selectedIngredient={selectedIngredient}
                   onSelectIngredient={setSelectedIngredient}
 
-                  // Add Form Props
+                  // Add Form State Properties
                   formError={addProps.formError}
                   formName={addProps.formName}
                   setFormName={addProps.setFormName}
@@ -55,8 +57,8 @@ export default function InventoryPage() {
                   formExpiryDate={addProps.formExpiryDate}
                   setFormExpiryDate={addProps.setFormExpiryDate}
                   onFormSubmit={addProps.handleAddIngredient}
-
-                  // Edit Form Props
+                  
+                  // Edit Form State Properties
                   editError={editProps.editError}
                   editName={editProps.editName}
                   setEditName={editProps.setEditName}
