@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import type { Ingredient } from '../types/InventoryItem';
 
+// Icons for Bottom Navigation Bar and Actions Panel (in .png format)
 import cafeLogo    from '../assets/cafeLogo.png';
 import homeIcon    from '../assets/homeIcon.png';
 import posIcon     from '../assets/posIcon.png';
@@ -99,22 +100,22 @@ export default function InventoryPageUI({
   formExpiryDate,
   setFormExpiryDate,
   onFormSubmit,
-  editError: _editError,
-  editName: _editName,
-  setEditName: _setEditName,
-  editCategory: _editCategory,
-  setEditCategory: _setEditCategory,
-  editQuantity: _editQuantity,
-  setEditQuantity: _setEditQuantity,
-  editUnit: _editUnit,
-  setEditUnit: _setEditUnit,
-  editThreshold: _editThreshold,
-  setEditThreshold: _setEditThreshold,
-  editStockDate: _editStockDate,
-  setEditStockDate: _setEditStockDate,
-  editExpiryDate: _editExpiryDate,
-  setEditExpiryDate: _setEditExpiryDate,
-  onEditSubmit: _onEditSubmit,
+  editError,
+  editName,
+  setEditName,
+  editCategory,
+  setEditCategory,
+  editQuantity,
+  setEditQuantity,
+  editUnit,
+  setEditUnit,
+  editThreshold,
+  setEditThreshold,
+  editStockDate,
+  setEditStockDate,
+  editExpiryDate,
+  setEditExpiryDate,
+  onEditSubmit,
   deleteError: _deleteError,
   onDeleteSubmit: _onDeleteSubmit,
   children,
@@ -136,7 +137,9 @@ export default function InventoryPageUI({
   const openView = (view: ActionView) => {
     setActionView(view);
     setIsModalOpen(view === 'add');
-    onSelectIngredient(null); 
+    if (view === 'menu') {
+      onSelectIngredient(null);
+    }
   };
 
   const goBackToMenu = () => {
@@ -203,7 +206,6 @@ export default function InventoryPageUI({
       {/* ====================[MAIN MATRIX WORKSPACE]==================== */}
       <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
         
-        {/* INVENTORY MASTER TABLE */}
         <section style={{
           border: '1px solid #D3D3D3', borderRadius: 12, background: '#F1F1F1', padding: 24,
           boxShadow: '0 4px 40px #ccbfbf', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box'
@@ -402,11 +404,73 @@ export default function InventoryPageUI({
                 )}
 
                 {actionView === 'edit' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
                     <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
-                    <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
-                      Pasting your custom edit form fields into this view block next.
+                    <div style={{ marginBottom: 4 }}>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E' }}>EDIT INGREDIENT</h3>
+                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>
+                        {selectedIngredient ? 'All fields must be filled up with complete and correct information.' : 'Select the ingredient you need to edit on the table.'}
+                      </p>
                     </div>
+                    {editError && (
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+                        <span style={{ fontWeight: 600 }}>{editError}</span>
+                      </div>
+                    )}
+                    {selectedIngredient ? (
+                      <form onSubmit={async (e) => { e.preventDefault(); if (await onEditSubmit(e)) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        <div>
+                          <label style={labelStyle}>Name</label>
+                          <input type="text" value={editName} onChange={e => setEditName(e.target.value)} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Category</label>
+                          <select value={editCategory} onChange={e => setEditCategory(e.target.value)} style={inputStyle}>
+                            <option value="INGREDIENTS">INGREDIENTS</option>
+                            <option value="PACKAGING">PACKAGING</option>
+                            <option value="CONSUMABLES">CONSUMABLES</option>
+                          </select>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div>
+                            <label style={labelStyle}>Quantity</label>
+                            <input type="number" step="0.01" value={editQuantity} onChange={e => setEditQuantity(e.target.value)} style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Unit of Measurement</label>
+                            <select value={editUnit} onChange={e => setEditUnit(e.target.value)} style={inputStyle}>
+                              <option value="kg">kg</option>
+                              <option value="L">L</option>
+                              <option value="pcs">pcs</option>
+                              <option value="oz">oz</option>
+                            </select>
+                          </div>
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Threshold</label>
+                          <input type="number" value={editThreshold} onChange={e => setEditThreshold(e.target.value)} style={inputStyle} />
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <div>
+                            <label style={labelStyle}>Stock Date</label>
+                            <input type="date" value={editStockDate} onChange={e => setEditStockDate(e.target.value)} style={inputStyle} />
+                          </div>
+                          <div>
+                            <label style={labelStyle}>Expiration Date</label>
+                            <input type="date" value={editExpiryDate} onChange={e => setEditExpiryDate(e.target.value)} style={inputStyle} />
+                          </div>
+                        </div>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
+                          <button type="button" onClick={goBackToMenu} style={{ ...submitBtnStyle, backgroundColor: '#E5E5E5', color: '#1E1E1E', marginTop: 0, borderRadius: '0 0 0 12px' }}>Cancel</button>
+                          <button type="submit" style={{ ...submitBtnStyle, backgroundColor: '#09AA29', marginTop: 0, borderRadius: '0 0 12px 0' }}>Confirm</button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
+                        No row selected. Please select an item on the list table to view details.
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -420,7 +484,6 @@ export default function InventoryPageUI({
               <div style={{ flexGrow: 1 }} />
             )}
             
-            {/* UNCONDITIONAL PORTAL RENDER: System notifications show up across all active accounts */}
             {children}
           </div>
         </aside>
