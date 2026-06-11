@@ -1,10 +1,8 @@
-
 import React, { useState, Fragment } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import type { Ingredient } from '../types/InventoryItem';
 
-// Icons for Bottom Navigation Bar and Actions Panel (in .png format)
 import cafeLogo    from '../assets/cafeLogo.png';
 import homeIcon    from '../assets/homeIcon.png';
 import posIcon     from '../assets/posIcon.png';
@@ -16,23 +14,23 @@ import deleteIcon  from '../assets/deleteIcon.png';
 import adminIcon   from '../assets/adminIcon.png';
 import searchIcon from '../assets/searchIcon.png';
 
-
-
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
 interface InventoryPageUIProps {
-  // Global Layout Props
   userRole: string | undefined;
   isModalOpen: boolean;
   setIsModalOpen: (open: boolean) => void;
 
-  // Table Props (Passed from Features)
   sortedIngredients: Ingredient[];
   sortColumn: keyof Ingredient;
   sortDirection: 'asc' | 'desc';
   onSort: (column: keyof Ingredient) => void;
 
-  // Form Props (Passed from Features)
+  actionView: ActionView;
+  setActionView: (view: ActionView) => void;
+  selectedIngredient: Ingredient | null;
+  onSelectIngredient: (item: Ingredient | null) => void;
+
   formError: string;
   formName: string;
   setFormName: (v: string) => void;
@@ -48,7 +46,29 @@ interface InventoryPageUIProps {
   setFormStockDate: (v: string) => void;
   formExpiryDate: string;
   setFormExpiryDate: (v: string) => void;
-  onFormSubmit: (e: React.FormEvent) => Promise<boolean>
+  onFormSubmit: (e: React.FormEvent) => Promise<boolean>;
+
+  editError: string;
+  editName: string;
+  setEditName: (v: string) => void;
+  editCategory: string;
+  setEditCategory: (v: string) => void;
+  editQuantity: string;
+  setEditQuantity: (v: string) => void;
+  editUnit: string;
+  setEditUnit: (v: string) => void;
+  editThreshold: string;
+  setEditThreshold: (v: string) => void;
+  editStockDate: string;
+  setEditStockDate: (v: string) => void;
+  editExpiryDate: string;
+  setEditExpiryDate: (v: string) => void;
+  onEditSubmit: (e: React.FormEvent) => Promise<boolean>;
+
+  deleteError: string;
+  onDeleteSubmit: () => Promise<boolean>;
+  
+  children?: React.ReactNode;
 }
 
 export default function InventoryPageUI({
@@ -59,6 +79,10 @@ export default function InventoryPageUI({
   sortColumn,
   sortDirection,
   onSort,
+  actionView,
+  setActionView,
+  selectedIngredient,
+  onSelectIngredient,
   formError,
   formName,
   setFormName,
@@ -75,33 +99,50 @@ export default function InventoryPageUI({
   formExpiryDate,
   setFormExpiryDate,
   onFormSubmit,
+  editError: _editError,
+  editName: _editName,
+  setEditName: _setEditName,
+  editCategory: _editCategory,
+  setEditCategory: _setEditCategory,
+  editQuantity: _editQuantity,
+  setEditQuantity: _setEditQuantity,
+  editUnit: _editUnit,
+  setEditUnit: _setEditUnit,
+  editThreshold: _editThreshold,
+  setEditThreshold: _setEditThreshold,
+  editStockDate: _editStockDate,
+  setEditStockDate: _setEditStockDate,
+  editExpiryDate: _editExpiryDate,
+  setEditExpiryDate: _setEditExpiryDate,
+  onEditSubmit: _onEditSubmit,
+  deleteError: _deleteError,
+  onDeleteSubmit: _onDeleteSubmit,
+  children,
 }: InventoryPageUIProps) {
-
-  // Bottom Navigation Bar Routing
-  const navigate = useNavigate();
-  const [actionView, setActionView] = useState<ActionView>('menu');
   
-  // Search Field for Filtering Inventory Items & Filters by Search Query [US12]
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const filteredIngredients = sortedIngredients.filter(item => {
+  const CATEGORY_ORDER = ['INGREDIENTS', 'PACKAGING', 'CONSUMABLES'];
+
+  const filteredIngredients = (sortedIngredients || []).filter(item => {
+    if (!item) return false;
     const q = searchQuery.toLowerCase();
-    return (
-      item.ingredient_name.toLowerCase().includes(q) ||
-      item.ingredient_id.toString().includes(q) ||
-      item.stock_status.toLowerCase().includes(q)
-    );
+    const name = (item.ingredient_name || '').toLowerCase();
+    const id = (item.ingredient_id || '').toString();
+    const status = (item.stock_status || '').toLowerCase();
+    return name.includes(q) || id.includes(q) || status.includes(q);
   });
 
-  // Opens a Sub-Panel in the Actions Panel
   const openView = (view: ActionView) => {
     setActionView(view);
     setIsModalOpen(view === 'add');
+    onSelectIngredient(null); 
   };
 
-  // Returns to Main Menu
   const goBackToMenu = () => {
     setActionView('menu');
     setIsModalOpen(false);
+    onSelectIngredient(null);
   };
 
   const renderSortIcon = (column: keyof Ingredient) => {
@@ -111,10 +152,6 @@ export default function InventoryPageUI({
       : <ArrowDown style={{ width: 11, height: 11, marginLeft: 4, display: 'inline', color: '#D1915F' }} />;
   };
 
-  // For Table Categorization (Ingredients, Packaging, Consumables) [US11]
-  const CATEGORY_ORDER = ['INGREDIENTS', 'PACKAGING', 'CONSUMABLES'];
-
-  // For Labels, Inputs, and Submit Buttons Inside Sub-Panels (ADD/EDIT/DELETE) - for uniformity hehe
   const labelStyle: React.CSSProperties = {
     display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase',
     letterSpacing: 0.5, color: '#D1915F', marginBottom: 4
@@ -129,34 +166,27 @@ export default function InventoryPageUI({
     width: '100%', padding: '10px 0', background: '#D1915F', color: '#FFFFFF',
     fontWeight: 700, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer', marginTop: 4
   };
+
   return (
-    // Root Container (flex-col with space-between to push the nav bar to the bottom)
     <div style={{
       minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif",
       padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box'
     }}>
-
-      {/* fontFamily for Tita's Cafe Title/Logo: Liu Jian Mao Cao) */}
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
 
-      {/* ====================[HEADER] LOGO + TITLE + ACCESS ==================== */}
-      
-      {/* LOGO - TITLE (Tita's Cafe) - USER ACCESS (Admin/Employee)*/}
+      {/* ====================[HEADER]==================== */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-
-        {/* LOGO - TITLE (Tita's Cafe) */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} />
-            <h1 style={{
-              fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E',
-              lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column'
-            }}>
-              <span>Tita's</span>
-              <span>cafe</span>
-            </h1>
+          <h1 style={{
+            fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E',
+            lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column'
+          }}>
+            <span>Tita's</span>
+            <span>cafe</span>
+          </h1>
         </div>
 
-        {/* USER ACCESS (Admin/Employee) */}
         <div style={{
           display: 'flex', alignItems: 'center', gap: 10, background: 'white',
           padding: '15px 25px', borderRadius: 28, border: '1px solid #D3C9BE',
@@ -166,24 +196,18 @@ export default function InventoryPageUI({
           <div style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
-
-          {/* Display Role based on Access (Admin/Employee) */}
           <span>{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase() : 'Guest'}</span>
         </div>
       </header>
 
-      {/* ====================[LEFT COLUMN] INVENTORY TABLE + ACTIONS PANEL==================== */}
-
-      {/* Two-Column Grid (Left Column: Inventory Table, Right Column: Actions Panel) */}
+      {/* ====================[MAIN MATRIX WORKSPACE]==================== */}
       <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
-
-        {/* INVENTORY TABLE */}
+        
+        {/* INVENTORY MASTER TABLE */}
         <section style={{
           border: '1px solid #D3D3D3', borderRadius: 12, background: '#F1F1F1', padding: 24,
           boxShadow: '0 4px 40px #ccbfbf', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box'
         }}>
-
-          {/* TITLE (Inventory) - Search Bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <h2 style={{ fontSize: 28, fontWeight: 700, color: '#000000', margin: 0 }}>Inventory</h2>
@@ -201,16 +225,12 @@ export default function InventoryPageUI({
                   fontSize: 14, width: 240, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF'
                 }}
               />
-              {/* Search Button - Clickable */}
-              <button
-                style={{ position: 'absolute', right: 12, background: 'none', border: 'none', color: '#D1915F', fontSize: 16, cursor: 'pointer' }}
-                aria-label="Search">
+              <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', color: '#D1915F', fontSize: 16, cursor: 'pointer' }} aria-label="Search">
                 <img src={searchIcon} alt="" style={{ width: 20, height: 20 }} />
               </button>
             </div>
           </div>
 
-          {/* The Inventory Table Itself with Data */}
           <div style={{ flexGrow: 1, overflowY: 'auto', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3D3D3', maxHeight: 520 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: 14 }}>
               <thead>
@@ -224,347 +244,202 @@ export default function InventoryPageUI({
                     ['stock_status',        'Stock Status'],
                     ['expiry_date',         'Expiration Date'],
                   ] as [keyof Ingredient, string][]).map(([col, label]) => (
-                    <th
-                      key={col}
-                      onClick={() => onSort(col)}
-                      style={{
-                        backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px',
-                        textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5,
-                        borderBottom: '1px solid #D3D3D3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap'
-                      }}
-                    >
+                    <th key={col} onClick={() => onSort(col)} style={{ backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px', textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5, borderBottom: '1px solid #D3D3D3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
                       {label}{renderSortIcon(col)}
                     </th>
                   ))}
                 </tr>
               </thead>
-
-              {/* CATEGORY + INGREDIENT DATA*/}
               <tbody>
-                {CATEGORY_ORDER.map(category => {
-                  const items = filteredIngredients.filter(item =>
-                    item.ingredient_category.toUpperCase() === category
-                  );
-                  if (items.length === 0) return null;
-
-                  return (
-                    <Fragment key={category}>
-                      {/* Category section header row */}
-                      <tr>
-                        <td
-                          colSpan={7}
-                          style={{ backgroundColor: '#D1915F', color: '#ffffff', fontWeight: 700, padding: '8px 16px', fontSize: 13, letterSpacing: 0.5, textAlign: 'left'}}
-                        >
-                          {category}
-                        </td>
-                      </tr>
-
-                      {items.map((item) => {
-                        return (
-                          <tr
-                            key={item.ingredient_id}
-                            style={{ transition: 'background-color 0.15s ease' }}
-                            onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = '#FDFBF7'; }}
-                            onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.backgroundColor = ''; }}
-                          >
-                            <td style={{ padding: '14px 16px', color: '#000000', borderBottom: '1px solid #F1F1F1' }}>{item.ingredient_id}</td>
-                            <td style={{ padding: '14px 16px', color: '#000000', borderBottom: '1px solid #F1F1F1' }}><strong>{item.ingredient_name}</strong></td>
-                            <td style={{ padding: '14px 16px', color: '#000000', borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
-                            <td style={{ padding: '14px 16px', color: '#000000', borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
-                            <td style={{ padding: '14px 16px', color: '#000000', borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
-                            
-                            {/* TABLE - STOCK STATUS: GREEN=IN STOCK, RED=LOW STOCK */}
-                            <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
-                              <span style={{
-                                fontWeight: 700, fontSize: 12,
-                                color: item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29'
-                              }}>
-
-                                {/* FOR THE STOCK STATUS ICON 🔴=LOW STOCK and 🟢= IN STOCK */}
-                                {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
-                                {item.stock_status}
-                              </span>
-                            </td>
-                            <td style={{ padding: '14px 16px', color: '#000000', borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </Fragment>
-                  );
-                })}
-
-
-                {filteredIngredients.length === 0 && (
+                {filteredIngredients.length === 0 ? (
                   <tr>
                     <td colSpan={7} style={{ textAlign: 'center', padding: 24, color: '#8A7E72', fontStyle: 'italic' }}>
                       No inventory data matches your search query criteria.
                     </td>
                   </tr>
+                ) : (
+                  CATEGORY_ORDER.map(category => {
+                    const categoryItems = filteredIngredients.filter(item => 
+                      (item.ingredient_category || '').toUpperCase() === category
+                    );
+                    if (categoryItems.length === 0) return null;
+
+                    return (
+                      <Fragment key={category}>
+                        <tr>
+                          <td colSpan={7} style={{ backgroundColor: '#D1915F', color: '#ffffff', fontWeight: 700, padding: '8px 16px', fontSize: 13, letterSpacing: 0.5, textAlign: 'left'}}>
+                            {category}
+                          </td>
+                        </tr>
+                        {categoryItems.map((item) => {
+                          const isSelected = selectedIngredient?.ingredient_id === item.ingredient_id;
+                          let rowBg = '';
+                          let textStyleColor = '#000000';
+                          if (isSelected) {
+                            rowBg = actionView === 'delete' ? '#FF2C2C' : '#D1915F';
+                            textStyleColor = '#FFFFFF';
+                          }
+
+                          return (
+                            <tr 
+                              key={item.ingredient_id} 
+                              onClick={() => {
+                                if (actionView === 'delete' || actionView === 'edit' || actionView === 'menu') {
+                                  onSelectIngredient(item);
+                                  if (actionView === 'menu') setActionView('edit');
+                                }
+                              }}
+                              style={{ backgroundColor: rowBg, cursor: 'pointer', transition: 'background-color 0.15s ease' }}
+                              onMouseEnter={e => { if(!isSelected) e.currentTarget.style.backgroundColor = '#FDFBF7'; }}
+                              onMouseLeave={e => { if(!isSelected) e.currentTarget.style.backgroundColor = ''; }}
+                            >
+                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.ingredient_id}</td>
+                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}><strong>{item.ingredient_name}</strong></td>
+                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
+                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
+                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
+                              <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
+                                <span style={{ fontWeight: 700, fontSize: 12, color: isSelected ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29') }}>
+                                  {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
+                                  {item.stock_status}
+                                </span>
+                              </td>
+                              <td style={{ padding: '14px 16px', color: textStyleColor, borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}</td>
+                            </tr>
+                          );
+                        })}
+                      </Fragment>
+                    );
+                  })
                 )}
               </tbody>
             </table>
           </div>
         </section>
 
-        {/* ====================[RIGHT COLUMN: ADMIN] ACTIONS PANEL==================== */}
-
-        {/* actionView Switch between menu and sub-panels (add, edit, delete) */}
-        <aside style={{
-          display: 'flex', flexDirection: 'column', background: '#F1F1F1',
-          border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf', overflow: 'hidden', position: 'relative', paddingBottom: 80
-        }}>
-
-          {/* Panel Title Changes (Admin = Actions; Employee = Notifications) */}
-          <h2 style={{
-            fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px',
-            borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center'
-          }}>
+        {/* SIDEBAR CONTEXT OVERLAYS */}
+        <aside style={{ display: 'flex', flexDirection: 'column', background: '#F1F1F1', border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf', overflow: 'hidden', position: 'relative', paddingBottom: 80 }}>
+          <h2 style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px', borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>
             {userRole?.toLowerCase() === 'admin' ? 'Actions' : 'Notifications'}
           </h2>
 
           <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1 }}>
-
             {userRole?.toLowerCase() === 'admin' ? (
               <>
-                {/* ACTION BUTTONS */}
-            
                 {actionView === 'menu' && (
-                  <>
-                    {/* [ADD] BUTTON */}
-                    <button
-                      onClick={() => openView('add')}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F',
-                        cursor: 'pointer', boxSizing: 'border-box',
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 15px rgba(0,0,0,0.06)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 10px rgba(0,0,0,0.03)'; }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
-                          <img src={addIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} />
-                        </div>
-                      </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                    <button onClick={() => openView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}><img src={addIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /></div></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', letterSpacing: 0.5 }}>ADD</span>
                     </button>
-
-                    {/* [EDIT] BUTTON */}
-                    <button
-                      onClick={() => openView('edit')}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F',
-                        cursor: 'pointer', boxSizing: 'border-box',
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 15px rgba(0,0,0,0.06)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 10px rgba(0,0,0,0.03)'; }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
-                          <img src={editIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} />
-                        </div>
-                      </div>
+                    <button onClick={() => openView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}><img src={editIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /></div></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', letterSpacing: 0.5 }}>EDIT</span>
                     </button>
-
-                    {/* [DELETE] BUTTON */}
-                    <button
-                      onClick={() => openView('delete')}
-                      style={{
-                        width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                        padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C',
-                        cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.03)', boxSizing: 'border-box',
-                        transition: 'transform 0.15s ease, box-shadow 0.15s ease'
-                      }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.transform = 'translateY(-2px)'; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 6px 15px rgba(0,0,0,0.06)'; }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.transform = ''; (e.currentTarget as HTMLButtonElement).style.boxShadow = '0 4px 10px rgba(0,0,0,0.03)'; }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}>
-                          <img src={deleteIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} />
-                        </div>
-                      </div>
+                    <button onClick={() => openView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', boxSizing: 'border-box' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}><div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#FFFFFF' }}><img src={deleteIcon} alt="" style={{ width: 34, height: 34, objectFit: 'contain' }} /></div></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#FF4A4A', letterSpacing: 0.5 }}>DELETE</span>
                     </button>
-                  </>
-                )}
-
-                {/* Inside [ADD] Sub-Panel (US6)*/}
-
-                  {actionView === 'add' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
-                      <button
-                        onClick={goBackToMenu}
-                        style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}
-                      >  ← Back to Dashboard
-                      </button>
-
-                      {/* Form Error Banner */}
-                      {formError && (
-                        <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                          <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
-                          <span style={{ fontWeight: 600 }}>{formError}</span>
-                        </div>
-                      )}
-
-                      {/* [ADD] Ingredient Form/Fields*/}
-                      <form
-                        onSubmit={async (e) => { 
-                          e.preventDefault();
-
-                          const isSavedSuccessfully = await onFormSubmit(e);
-
-                          if (isSavedSuccessfully) {
-                            goBackToMenu();
-                          }
-                        }}
-                        style={{ display: 'flex', flexDirection: 'column', gap: 12 }}
-                      >
-                        {/* [ADD] Ingredient Name */}
-                        <div>
-                          <label style={labelStyle}>Item Name</label>
-                          <input type="text" value={formName} onChange={e => setFormName(e.target.value)}
-                            placeholder="e.g. Espresso Beans" style={inputStyle} />
-                        </div>
-
-                        {/* [ADD] Category */}
-                        <div>
-                          <label style={labelStyle}>Category</label>
-                          <select value={formCategory} onChange={e => setFormCategory(e.target.value)} style={inputStyle}>
-                            <option value="INGREDIENTS">INGREDIENTS</option>
-                            <option value="PACKAGING">PACKAGING</option>
-                            <option value="CONSUMABLES">CONSUMABLES</option>
-                          </select>
-                        </div>
-
-                        {/* [ADD] Quantity + Unit */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <div>
-                            <label style={labelStyle}>Quantity</label>
-                            <input type="number" step="0.01" value={formQuantity} onChange={e => setFormQuantity(e.target.value)}
-                              placeholder="0.00" style={inputStyle} />
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Unit</label>
-                            <select value={formUnit} onChange={e => setFormUnit(e.target.value)} style={inputStyle}>
-                              <option value="kg">kg</option>
-                              <option value="L">L</option>
-                              <option value="pcs">pcs</option>
-                              <option value="oz">oz</option>
-                            </select>
-                          </div>
-                        </div>
-
-                        {/* [ADD] Threshold */}
-                        <div>
-                          <label style={labelStyle}>Threshold</label>
-                          <input type="number" value={formThreshold} onChange={e => setFormThreshold(e.target.value)}
-                            placeholder="5" style={inputStyle} />
-                        </div>
-
-                        {/* [ADD] Stock Date + Expiry Date */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                          <div>
-                            <label style={labelStyle}>Stock Date</label>
-                            <input type="date" value={formStockDate} onChange={e => setFormStockDate(e.target.value)} style={inputStyle} />
-                          </div>
-                          <div>
-                            <label style={labelStyle}>Expiry Date</label>
-                            <input type="date" value={formExpiryDate} onChange={e => setFormExpiryDate(e.target.value)} style={inputStyle} />
-                          </div>
-                        </div>
-
-                        {/* Submit */}
-                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
-                          <button 
-                            type="submit" 
-                            style={{...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}
-                          > Confirm
-                          </button>
-                        </div>
-                      </form>
-                    </div>
-                  )}
-
-                {/* Inside [EDIT] Sub-Panel (US7)*/}
-                {actionView === 'edit' && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <button
-                      onClick={goBackToMenu}
-                      style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}
-                    >
-                      ← Back to Dashboard
-                    </button>
-
-                    {/* ====================ADD YOUR CODE HERE FOR THE [EDIT] SUB PANEL (US7)==================== */}
-
                   </div>
                 )}
 
-                {/* Inside [DELETE] Sub-Panel (US10)*/}
+                {actionView === 'add' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
+                    {formError && (
+                      <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                        <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0, marginTop: 1 }} />
+                        <span style={{ fontWeight: 600 }}>{formError}</span>
+                      </div>
+                    )}
+                    <form onSubmit={async (e) => { e.preventDefault(); if (await onFormSubmit(e)) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div>
+                        <label style={labelStyle}>Item Name</label>
+                        <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Espresso Beans" style={inputStyle} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Category</label>
+                        <select value={formCategory} onChange={e => setFormCategory(e.target.value)} style={inputStyle}>
+                          <option value="INGREDIENTS">INGREDIENTS</option>
+                          <option value="PACKAGING">PACKAGING</option>
+                          <option value="CONSUMABLES">CONSUMABLES</option>
+                        </select>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div>
+                          <label style={labelStyle}>Quantity</label>
+                          <input type="number" step="0.01" value={formQuantity} onChange={e => setFormQuantity(e.target.value)} placeholder="0.00" style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Unit</label>
+                          <select value={formUnit} onChange={e => setFormUnit(e.target.value)} style={inputStyle}>
+                            <option value="kg">kg</option>
+                            <option value="L">L</option>
+                            <option value="pcs">pcs</option>
+                            <option value="oz">oz</option>
+                          </select>
+                        </div>
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Threshold</label>
+                        <input type="number" value={formThreshold} onChange={e => setFormThreshold(e.target.value)} placeholder="5" style={inputStyle} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        <div>
+                          <label style={labelStyle}>Stock Date</label>
+                          <input type="date" value={formStockDate} onChange={e => setFormStockDate(e.target.value)} style={inputStyle} />
+                        </div>
+                        <div>
+                          <label style={labelStyle}>Expiry Date</label>
+                          <input type="date" value={formExpiryDate} onChange={e => setFormExpiryDate(e.target.value)} style={inputStyle} />
+                        </div>
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+                        <button type="submit" style={{...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}>Confirm</button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                {actionView === 'edit' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
+                    <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
+                      Pasting your custom edit form fields into this view block next.
+                    </div>
+                  </div>
+                )}
+
                 {actionView === 'delete' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                    <button
-                      onClick={goBackToMenu}
-                      style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}
-                    >
-                      ← Back to Dashboard
-                    </button>
-                    
-                    {/* ====================ADD YOUR CODE HERE FOR THE [DELETE] SUB PANEL (US10)==================== */}
-
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 }}>← Back to Dashboard</button>
                   </div>
                 )}
               </>
-
             ) : (
-              // =====================[RIGHT COLUMN: EMPLOYEE] NOTIFICATIONS PANEL (US9)====================
               <div style={{ flexGrow: 1 }} />
-
-              // ====================ADD YOUR CODE HERE FOR THE NOTIFICATIONS PANEL (US9)====================
             )}
-
+            
+            {/* UNCONDITIONAL PORTAL RENDER: System notifications show up across all active accounts */}
+            {children}
           </div>
         </aside>
       </main>
 
-      {/* ==================== [FOOTER] BOTTOM NAVIGATION BAR ==================== */}
-
-      <nav style={{
-        background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf',
-        width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE', marginTop: 16
-      }}>
+      {/* FOOTER BAR MODULE */}
+      <nav style={{ background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf', width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE', marginTop: 16 }}>
         {[
           { label: 'HOME',           icon: homeIcon,       path: '/home',       active: false },
           { label: 'POINT OF SALES', icon: posIcon,        path: '/pos',        active: false },
           { label: 'INVENTORY',      icon: inventoryIcon,  path: '/inventory',  active: true  },
           { label: 'INSIGHTS',       icon: insightsIcon,   path: '/insights',   active: false },
         ].map(({ label, icon, path, active }) => (
-          <button
-            key={label}
-            type="button"
-            onClick={() => navigate(path)}
-            style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-              flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer',
-              color: '#D1915F', fontWeight: 700, fontSize: 14, letterSpacing: 0.,
-              transition: 'all 0.2s ease-in-out', border: active ? '1px solid #D3C9BE' : '1px solid transparent',
-              background: active ? '#FFFFFF' : 'transparent',
-              boxShadow: active ? '0 2px 4px #ccbfbf' : 'none',
-            }}
-          >
+          <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '1px solid #D3C9BE' : '1px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 2px 4px #ccbfbf' : 'none' }}>
             <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} />
             <span>{label}</span>
           </button>
         ))}
       </nav>
-
     </div>
   );
 }
-

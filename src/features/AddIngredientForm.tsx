@@ -48,6 +48,7 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
       return false; 
     }
 
+    // Missing fields validation check
     if (!formName.trim() || !formQuantity || !formUnit || !formThreshold || !formStockDate || !formExpiryDate) {
       setFormError('Validation Error: All fields are explicitly required.');
       return false;
@@ -56,16 +57,19 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
     const parsedQty = parseFloat(formQuantity);
     const parsedThreshold = parseInt(formThreshold);
 
+    // Negative parameters validation check
     if (parsedQty < 0 || parsedThreshold < 0) {
       setFormError('Validation Error: Quantity and Threshold values cannot be negative.');
       return false;
     }
 
+    // Chronological order validation check
     if (new Date(formExpiryDate) <= new Date(formStockDate)) {
       setFormError('Validation Error: Expiration Date must be scheduled after the inbound Stock Date.');
       return false;
     }
 
+    // Dispatch payload directly to context bucket architecture
     const success = await addIngredient({
       ingredient_name: formName.trim(),
       ingredient_category: formCategory,
@@ -80,6 +84,7 @@ export default function AddIngredientForm({ onSuccess, children }: AddIngredient
       setFormError('Database Alert: Could not save item. Ensure the name is unique.');
       return false;
     } else {
+      // Clear form inputs cleanly upon successful persistence sequence
       setFormName('');
       setFormQuantity('');
       setFormThreshold('');

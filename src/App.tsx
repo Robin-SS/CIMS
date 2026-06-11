@@ -25,7 +25,7 @@ function App() {
           {/* Home Hub Menu Portal */}
           <Route 
             path="/home" 
-            element={
+            element = {
               <ProtectedRoute allowedRoles={['admin', 'employee']}>
                 <HomeHub />
               </ProtectedRoute>
