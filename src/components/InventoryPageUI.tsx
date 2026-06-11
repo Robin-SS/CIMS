@@ -452,7 +452,7 @@ export default function InventoryPageUI({
                     )}
                   </div>
                 )}
-
+--test connection edit
                 {actionView === 'delete' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
                     <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
