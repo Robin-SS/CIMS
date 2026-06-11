@@ -313,6 +313,14 @@ export default function InventoryPageUI({
                       <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="" style={{ width: 34, height: 34 }} /></div>
                       <span style={{ fontSize: 25, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span>
                     </button>
+
+                    <hr style={{ border: 'none', borderTop: '1px solid #D3C9BE', margin: '12px 0' }} />
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#8A7E72', margin: '0 0 4px 0', textTransform: 'uppercase', textAlign: 'left' }}>
+                      Alerts Overview
+                    </h3>
+                    <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '200px', paddingRight: 4 }}>
+                      {children}
+                    </div>
                   </>
                 )}
 
