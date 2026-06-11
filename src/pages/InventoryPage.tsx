@@ -117,7 +117,7 @@ export default function InventoryPage() {
                       deleteError={deleteProps.deleteError}
                       onDeleteSubmit={deleteProps.handleDeleteIngredients}
                     >
-                      <NotificationPanel />
+                      <NotificationPanel ingredients={sortedIngredients} />
                     </InventoryPageUI>
                   )}
                 </AddIngredientForm>
