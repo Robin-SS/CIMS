@@ -49,7 +49,14 @@ export default function InventoryPage() {
             >
               {(deleteProps) => (
                 <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
-                  {(addProps) => (
+                  {({
+                    formError, formName, setFormName, formCategory, setFormCategory,
+                    formQuantity, setFormQuantity, formUnit, setFormUnit,
+                    formThreshold, setFormThreshold, formStockDate, setFormStockDate,
+                    formExpiryDate, setFormExpiryDate, 
+                    hasExpiry, setHasExpiry, // Extracted the missing state properties here!
+                    handleAddIngredient
+                  }) => (
                     <InventoryPageUI
                       userRole={user?.role}
                       isModalOpen={isModalOpen}
@@ -68,22 +75,27 @@ export default function InventoryPage() {
                       onClearSelection={handleClearSelection}
 
                       // Form Bindings
-                      formError={addProps.formError}
-                      formName={addProps.formName}
-                      setFormName={addProps.setFormName}
-                      formCategory={addProps.formCategory}
-                      setFormCategory={addProps.setFormCategory}
-                      formQuantity={addProps.formQuantity}
-                      setFormQuantity={addProps.setFormQuantity}
-                      formUnit={addProps.formUnit}
-                      setFormUnit={addProps.setFormUnit}
-                      formThreshold={addProps.formThreshold}
-                      setFormThreshold={addProps.setFormThreshold}
-                      formStockDate={addProps.formStockDate}
-                      setFormStockDate={addProps.setFormStockDate}
-                      formExpiryDate={addProps.formExpiryDate}
-                      setFormExpiryDate={addProps.setFormExpiryDate} // <--- Make sure this line exists
-                      onFormSubmit={addProps.handleAddIngredient}
+                      formError={formError}
+                      formName={formName}
+                      setFormName={setFormName}
+                      formCategory={formCategory}
+                      setFormCategory={setFormCategory}
+                      formQuantity={formQuantity}
+                      setFormQuantity={setFormQuantity}
+                      formUnit={formUnit}
+                      setFormUnit={setFormUnit}
+                      formThreshold={formThreshold}
+                      setFormThreshold={setFormThreshold}
+                      formStockDate={formStockDate}
+                      setFormStockDate={setFormStockDate}
+                      formExpiryDate={formExpiryDate}
+                      setFormExpiryDate={setFormExpiryDate} 
+                      
+                      // Explicitly piped state down to the interface container
+                      hasExpiry={hasExpiry}
+                      setHasExpiry={setHasExpiry}
+                      
+                      onFormSubmit={handleAddIngredient}
                       
                       editError={editProps.editError}
                       editName={editProps.editName}

@@ -3,16 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowUpDown, ArrowUp, ArrowDown, AlertTriangle } from 'lucide-react';
 import type { Ingredient } from '../types/InventoryItem';
 
-import cafeLogo      from '../assets/cafeLogo.png';
-import homeIcon      from '../assets/homeIcon.png';
-import posIcon       from '../assets/posIcon.png';
-import inventoryIcon from '../assets/inventoryIcon.png';
-import insightsIcon  from '../assets/insightsIcon.png';
-import addIcon       from '../assets/addIcon.png';
-import editIcon      from '../assets/editIcon.png';
-import deleteIcon    from '../assets/deleteIcon.png';
-import adminIcon     from '../assets/adminIcon.png';
-import searchIcon    from '../assets/searchIcon.png';
+import cafeLogo       from '../assets/cafeLogo.png';
+import homeIcon       from '../assets/homeIcon.png';
+import posIcon        from '../assets/posIcon.png';
+import inventoryIcon  from '../assets/inventoryIcon.png';
+import insightsIcon   from '../assets/insightsIcon.png';
+import addIcon        from '../assets/addIcon.png';
+import editIcon       from '../assets/editIcon.png';
+import deleteIcon     from '../assets/deleteIcon.png';
+import adminIcon      from '../assets/adminIcon.png';
+import searchIcon     from '../assets/searchIcon.png';
 
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
@@ -50,6 +50,8 @@ interface InventoryPageUIProps {
   setFormStockDate: (v: string) => void;
   formExpiryDate: string;
   setFormExpiryDate: (v: string) => void;
+  hasExpiry: boolean;              // Added property input token mapping
+  setHasExpiry: (v: boolean) => void; // Added property input token mapping
   onFormSubmit: (e: React.FormEvent) => Promise<boolean>;
 
   editError: string;
@@ -93,7 +95,7 @@ export default function InventoryPageUI({
   formError, formName, setFormName, formCategory, setFormCategory,
   formQuantity, setFormQuantity, formUnit, setFormUnit,
   formThreshold, setFormThreshold, formStockDate, setFormStockDate,
-  formExpiryDate, setFormExpiryDate, onFormSubmit,
+  formExpiryDate, setFormExpiryDate, hasExpiry, setHasExpiry, onFormSubmit,
   editError, editName, setEditName, editCategory, setEditCategory,
   editQuantity, setEditQuantity, editUnit, setEditUnit,
   editThreshold, setEditThreshold, editStockDate, setEditStockDate,
@@ -152,6 +154,9 @@ export default function InventoryPageUI({
   };
 
   const selectedCount = selectedIds.size;
+
+  // Track if the loaded edit asset is configured as non-perishable
+  const editItemHasNoExpiry = editCategory === 'PACKAGING' || editExpiryDate === '9999-12-31';
 
   return (
     <div style={{
@@ -213,7 +218,7 @@ export default function InventoryPageUI({
                     ['stock_status',     'Stock Status'],
                     ['expiry_date',      'Expiration Date'],
                   ] as [keyof Ingredient, string][]).map(([col, label]) => (
-                    <th key={col} onClick={() => onSort(col)} style={{ backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px', textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5, borderBottom: '1px solid #D3D3D3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+                    <th key={`${col}`} onClick={() => onSort(col)} style={{ backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px', textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5, borderBottom: '1px solid #D3D3D3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
                       {label}{renderSortIcon(col)}
                     </th>
                   ))}
@@ -262,7 +267,9 @@ export default function InventoryPageUI({
                                 {item.stock_status}
                               </span>
                             </td>
-                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.expiry_date || 'N/A'}</td>
+                            <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>
+                              {item.expiry_date === '9999-12-31' ? 'N/A' : (item.expiry_date || 'N/A')}
+                            </td>
                           </tr>
                         );
                       })}
@@ -341,10 +348,34 @@ export default function InventoryPageUI({
                         </div>
                       </div>
                       <div><label style={labelStyle}>Threshold</label><input type="number" value={formThreshold} onChange={e => setFormThreshold(e.target.value)} style={inputStyle} /></div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                      
+                      {/* Checkbox Toggle — Displays for BOTH Ingredients and Consumables */}
+                      {formCategory !== 'PACKAGING' && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, textAlign: 'left' }}>
+                          <input 
+                            type="checkbox" 
+                            id="hasExpiryCheck" 
+                            checked={hasExpiry} 
+                            onChange={(e) => {
+                              setHasExpiry(e.target.checked);
+                              if (!e.target.checked) setFormExpiryDate('');
+                            }} 
+                            style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                          />
+                          <label htmlFor="hasExpiryCheck" style={{ fontSize: 13, fontWeight: 600, color: '#1E1E1E', cursor: 'pointer' }}>
+                            This item has an expiration date
+                          </label>
+                        </div>
+                      )}
+
+                      {/* Dynamic date grid layout rendering mapping */}
+                      <div style={{ display: 'grid', gridTemplateColumns: !hasExpiry ? '1fr' : '1fr 1fr', gap: 8 }}>
                         <div><label style={labelStyle}>Stock Date</label><input type="date" value={formStockDate} onChange={e => setFormStockDate(e.target.value)} style={inputStyle} /></div>
-                        <div><label style={labelStyle}>Expiry Date</label><input type="date" value={formExpiryDate} onChange={e => setFormExpiryDate(e.target.value)} style={inputStyle} /></div>
+                        {hasExpiry && (
+                          <div><label style={labelStyle}>Expiry Date</label><input type="date" value={formExpiryDate} onChange={e => setFormExpiryDate(e.target.value)} style={inputStyle} /></div>
+                        )}
                       </div>
+                      
                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
                         <button type="submit" style={{ ...submitBtnStyle, backgroundColor: '#09AA29', textTransform: 'uppercase', marginTop: 0, borderRadius: '0 0 12px 12px' }}>Confirm</button>
                       </div>
@@ -384,10 +415,31 @@ export default function InventoryPageUI({
                           </div>
                         </div>
                         <div><label style={labelStyle}>Threshold</label><input type="number" value={editThreshold} onChange={e => setEditThreshold(e.target.value)} style={inputStyle} /></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                        
+                        {/* Expiration checkbox option rendered for edit panels */}
+                        {editCategory !== 'PACKAGING' && (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, textAlign: 'left' }}>
+                            <input 
+                              type="checkbox" 
+                              id="editExpiryCheck" 
+                              checked={editExpiryDate !== '9999-12-31'} 
+                              onChange={(e) => setEditExpiryDate(e.target.checked ? '' : '9999-12-31')} 
+                              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="editExpiryCheck" style={{ fontSize: 13, fontWeight: 600, color: '#1E1E1E', cursor: 'pointer' }}>
+                              This item has an expiration date
+                            </label>
+                          </div>
+                        )}
+
+                        {/* Dynamic date grid layout spacing wrapper evaluating derived state metrics */}
+                        <div style={{ display: 'grid', gridTemplateColumns: editItemHasNoExpiry ? '1fr' : '1fr 1fr', gap: 8 }}>
                           <div><label style={labelStyle}>Stock Date</label><input type="date" value={editStockDate} onChange={e => setEditStockDate(e.target.value)} style={inputStyle} /></div>
-                          <div><label style={labelStyle}>Expiration Date</label><input type="date" value={editExpiryDate} onChange={e => setEditExpiryDate(e.target.value)} style={inputStyle} /></div>
+                          {!editItemHasNoExpiry && (
+                            <div><label style={labelStyle}>Expiration Date</label><input type="date" value={editExpiryDate} onChange={e => setEditExpiryDate(e.target.value)} style={inputStyle} /></div>
+                          )}
                         </div>
+
                         <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
                           <button type="button" onClick={goBackToMenu} style={{ ...submitBtnStyle, backgroundColor: '#E5E5E5', color: '#1E1E1E', marginTop: 0, borderRadius: '0 0 0 12px' }}>Cancel</button>
                           <button type="submit" style={{ ...submitBtnStyle, backgroundColor: '#09AA29', marginTop: 0, borderRadius: '0 0 12px 0' }}>Confirm</button>
@@ -456,10 +508,10 @@ export default function InventoryPageUI({
       {/* FOOTER NAV */}
       <nav style={{ background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf', width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE', marginTop: 16 }}>
         {[
-          { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
-          { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: false },
-          { label: 'INVENTORY',      icon: inventoryIcon, path: '/inventory', active: true  },
-          { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
+          { label: 'HOME',           icon: homeIcon,       path: '/home',      active: false },
+          { label: 'POINT OF SALES', icon: posIcon,        path: '/pos',       active: false },
+          { label: 'INVENTORY',      icon: inventoryIcon,  path: '/inventory', active: true  },
+          { label: 'INSIGHTS',       icon: insightsIcon,   path: '/insights',  active: false },
         ].map(({ label, icon, path, active }) => (
           <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '1px solid #D3C9BE' : '1px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 2px 4px #ccbfbf' : 'none' }}>
             <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} />

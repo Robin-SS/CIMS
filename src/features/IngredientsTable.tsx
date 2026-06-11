@@ -28,11 +28,17 @@ export default function IngredientsTable({ ingredients, children }: IngredientsT
     let valueA = a[sortColumn];
     let valueB = b[sortColumn];
 
+    // 1. Handle Null Values explicitly (Push null/blank entries to the bottom)
+    if (valueA === null || valueA === undefined) return 1;
+    if (valueB === null || valueB === undefined) return -1;
+
+    // 2. Perform string lowercase comparison to prevent alphabetical bugs
     if (typeof valueA === 'string' && typeof valueB === 'string') {
       valueA = valueA.toLowerCase();
       valueB = valueB.toLowerCase();
     }
 
+    // 3. Perform type-safe standard directional inequality values evaluation
     if (valueA < valueB) return sortDirection === 'asc' ? -1 : 1;
     if (valueA > valueB) return sortDirection === 'asc' ? 1 : -1;
     return 0;
