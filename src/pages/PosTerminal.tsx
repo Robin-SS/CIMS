@@ -1,41 +1,85 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, ShoppingCart } from 'lucide-react';
+import { useProducts } from '../services/ProductService'; 
+import PosTerminalUI from '../components/PosTerminalUI';
+import OrderSummary, { type OrderItem } from '../features/OrderSummary';
+import type { Product } from '../types/Product';
 
 export default function PosTerminal() {
   const { user } = useAuth();
-  const navigate = useNavigate();
+  
+  const { products, isLoading, error } = useProducts(); 
+  
+  const [activeTab, setActiveTab] = useState<string>('POINT OF SALES');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
+
+  // 2. State to hold the current items in the cart
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
+
+  // 3. Logic to add a product (or increment if it already exists)
+  const handleProductClick = (product: Product) => {
+    setOrderItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.product.product_id === product.product_id);
+      
+      if (existingItem) {
+        // If it exists, map through and increase the quantity by 1
+        return prevItems.map((item) => 
+          item.product.product_id === product.product_id 
+            ? { ...item, quantity: item.quantity + 1 } 
+            : item
+        );
+      }
+      
+      // If it doesn't exist, add it as a new order item
+      return [...prevItems, { product, quantity: 1 }];
+    });
+  };
+
+  // 4. Logic to handle the + and - buttons inside the Order Summary
+  const handleUpdateQuantity = (productId: number, delta: number) => {
+    setOrderItems((prevItems) => {
+      return prevItems.map((item) => {
+        if (item.product.product_id === productId) {
+          return { ...item, quantity: item.quantity + delta };
+        }
+        return item;
+      }).filter((item) => item.quantity > 0); // Automatically remove item if quantity hits 0
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#F9F8F6', color: '#D1915F', fontFamily: "'Inter', sans-serif" }}>
+        <h2>Loading Menu Catalog...</h2>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#FEF2F2', color: '#B91C1C', fontFamily: "'Inter', sans-serif" }}>
+        <h2>Database Error: {error}</h2>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col">
-      {/* Top Navbar */}
-      <header className="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center space-x-3">
-          <button 
-            onClick={() => navigate('/home')} 
-            className="p-2 hover:bg-stone-100 rounded-xl transition-colors text-stone-500 hover:text-stone-800"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </button>
-          <div className="bg-orange-600 text-white p-2 rounded-xl">
-            <ShoppingCart className="w-5 h-5" />
-          </div>
-          <div>
-            <h1 className="font-bold text-stone-800 text-lg">POS Register Terminal</h1>
-            <p className="text-xs text-stone-500">Operator: {user?.display_name} ({user?.role})</p>
-          </div>
-        </div>
-      </header>
-
-      {/* Placeholder Grid */}
-      <main className="flex-1 p-8 flex items-center justify-center">
-        <div className="bg-white p-8 rounded-2xl shadow-sm border border-stone-200 text-center max-w-md w-full">
-          <h2 className="text-2xl font-bold text-stone-800 mb-2">🛒 POS Grid Area</h2>
-          <p className="text-stone-500 text-sm">
-            Menu grid listings, pricing matrices, and order card computational items will go here.
-          </p>
-        </div>
-      </main>
-    </div>
+    <PosTerminalUI
+      userRole={user?.role}
+      products={products}
+      activeTab={activeTab}
+      setActiveTab={setActiveTab}
+      selectedCategory={selectedCategory}
+      onSelectCategory={setSelectedCategory}
+      onProductClick={handleProductClick}
+    >
+      {/* 5. Render the fully functional Order Summary for non-admin users */}
+      {user?.role !== 'admin' && (
+        <OrderSummary 
+          orderItems={orderItems} 
+          onUpdateQuantity={handleUpdateQuantity} 
+        />
+      )}
+    </PosTerminalUI>
   );
 }
