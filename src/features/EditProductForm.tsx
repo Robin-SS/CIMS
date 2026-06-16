@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useInventory } from '../context/InventoryContext';
 import { useAuth } from '../context/AuthContext';
 import { ProductService, type SelectedIngredientRecipe } from '../services/ProductService';
-import { supabase } from '../supabaseClient'; // Make sure this import matches your project path
+import { supabase } from '../supabaseClient'; 
 
 interface EditProductFormProps {
   productId: number;
@@ -38,6 +38,9 @@ export default function EditProductForm({ productId, onClose, onRefreshCatalog, 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedRecipes, setSelectedRecipes] = useState<SelectedIngredientRecipe[]>([]);
 
+  // Track the active loaded product instance to avoid background ghosting resets
+  const hasLoadedRef = useRef<number | null>(null);
+
   // Fetch product data and its associated ingredient records from Supabase
   useEffect(() => {
     async function loadProductDetails() {
@@ -70,7 +73,6 @@ export default function EditProductForm({ productId, onClose, onRefreshCatalog, 
 
         if (recipeRows) {
           const formattedRecipes: SelectedIngredientRecipe[] = recipeRows.map((row) => {
-            // Re-match back to inventory tracking references to maintain unit definitions consistency
             const matchedInv = ingredients.find(i => i.ingredient_id === row.ingredient_id);
             return {
               ingredient_id: row.ingredient_id,
@@ -80,6 +82,9 @@ export default function EditProductForm({ productId, onClose, onRefreshCatalog, 
           });
           setSelectedRecipes(formattedRecipes);
         }
+        
+        // Lock this product ID so it doesn't auto-reset during local array mutations
+        hasLoadedRef.current = productId;
       } catch (err: any) {
         setFormError(err.message || 'Failed to retrieve product metadata specifications.');
       } finally {
@@ -87,10 +92,18 @@ export default function EditProductForm({ productId, onClose, onRefreshCatalog, 
       }
     }
 
-    if (productId) {
+    // ✅ FIX: Only pull from Supabase if the form has not loaded this specific product instance yet
+    if (productId && hasLoadedRef.current !== productId) {
       loadProductDetails();
     }
   }, [productId, ingredients]);
+
+  // Reset lock structure cleanly if the active target changes
+  useEffect(() => {
+    if (productId !== hasLoadedRef.current) {
+      hasLoadedRef.current = null;
+    }
+  }, [productId]);
 
   const handleAddIngredientRow = () => {
     if (ingredients.length === 0) return;
@@ -145,13 +158,12 @@ export default function EditProductForm({ productId, onClose, onRefreshCatalog, 
 
     setIsSubmitting(true);
     
-    // We will leverage a dedicated service updater routine we'll add to ProductService next
     const { success, error } = await ProductService.updateProductWithIngredients(
       productId,
       productName.trim(),
       productCategory,
       priceNum,
-      selectedRecipes,
+      selectedRecipes, // Now safely passes your edited array with deletions!
       user?.user_id
     );
     
@@ -160,6 +172,7 @@ export default function EditProductForm({ productId, onClose, onRefreshCatalog, 
     if (!success) {
       setFormError(error?.message || 'Database update failure encounter. Please check configuration privileges.');
     } else {
+      hasLoadedRef.current = null; // Clear state cache upon successful completion
       onRefreshCatalog();
       onClose();
     }

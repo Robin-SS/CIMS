@@ -42,7 +42,6 @@ export const ProductService = {
     recipes: SelectedIngredientRecipe[],
     userId: string | number | undefined
   ) {
-    // 1. Insert core product into 'products' table
     const { data: productData, error: productError } = await supabase
       .from('products')
       .insert([
@@ -62,7 +61,6 @@ export const ProductService = {
 
     const newProductId = productData.product_id;
 
-    // 2. Map all chosen recipe dependencies into 'prod_ingredient'
     if (recipes.length > 0) {
       const recipeRows = recipes.map((rec) => ({
         product_id: newProductId,
@@ -81,7 +79,6 @@ export const ProductService = {
       }
     }
 
-    // 3. Log the action smoothly inside your custom 'activity_log'
     await supabase.from('activity_log').insert([
       {
         user_id: userId ? BigInt(userId) : null,
@@ -94,7 +91,7 @@ export const ProductService = {
     return { success: true, error: null };
   },
 
-  // NEW DATABASE UPDATE TRANSACTION HANDLER FOR EDIT MODE
+  // ✅ TRACKED: ADDED CONSOLE LOGGER AGENTS TO PINPOINT DATA PERSISTENCE GRAPH DESYNCS
   async updateProductWithIngredients(
     productId: number,
     name: string,
@@ -104,7 +101,11 @@ export const ProductService = {
     userId: string | number | undefined
   ) {
     try {
-      // 1. Update the primary fields in the 'products' table
+      console.log("%c🚀 PRODUCT SERVICE: STARTING METADATA UPDATE TRANSACTION", "color: #D1915F; font-weight: bold;");
+      console.log("📍 TARGET PRODUCT ID:", productId);
+      console.log("📥 INCOMING RECIPES ARRAY STATE:", JSON.stringify(recipes, null, 2));
+
+      // 1. Update primary field values inside products table matrix
       const { error: prodError } = await supabase
         .from('products')
         .update({
@@ -114,17 +115,25 @@ export const ProductService = {
         })
         .eq('product_id', productId);
 
-      if (prodError) throw prodError;
+      if (prodError) {
+        console.error("❌ BASE PRODUCT UPDATE ERROR:", prodError.message);
+        throw prodError;
+      }
 
-      // 2. Clear out any old recipe associations to avoid duplication conflicts
-      const { error: deleteError } = await supabase
+      // 2. Clear out any old recipe structural dependencies row references
+      console.log(`🧹 EXECUTION: Sending DELETE query request to table 'prod_ingredient' where product_id = ${productId}...`);
+      const { error: deleteError, count } = await supabase
         .from('prod_ingredient')
-        .delete()
+        .delete({ count: 'exact' })
         .eq('product_id', productId);
 
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("❌ INGREDIENT ERASE OPERATION FAILED:", deleteError.message);
+        throw deleteError;
+      }
+      console.log(`✅ OPERATION SUCCESSFUL: Wiped cached relational rows. Removed lines count:`, count);
 
-      // 3. Rewrite updated ingredient connections if any are assigned
+      // 3. Re-persist the current state snapshot rows mapping payload array down
       if (recipes.length > 0) {
         const recipeRows = recipes.map((rec) => ({
           product_id: productId,
@@ -133,14 +142,21 @@ export const ProductService = {
           standard_measurement_unit: rec.standard_measurement_unit
         }));
 
+        console.log("📥 EXECUTION: Writing fresh recipe configurations array down to Supabase:", JSON.stringify(recipeRows));
         const { error: insertError } = await supabase
           .from('prod_ingredient')
           .insert(recipeRows);
 
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("❌ INGREDIENT INJECTION WRITE ERROR:", insertError.message);
+          throw insertError;
+        }
+        console.log("✅ SUCCESSFUL WRITE: Database row structures populated securely.");
+      } else {
+        console.log("ℹ️ STATUS NOTICE: Recipes submission payload is empty. Skipped relational insertions.");
       }
 
-      // 4. Log the modification step smoothly inside the activity tracker
+      // 4. Trace changes cleanly into our activity logs metrics table
       await supabase.from('activity_log').insert([
         {
           user_id: userId ? BigInt(userId) : null,
@@ -152,12 +168,12 @@ export const ProductService = {
 
       return { success: true, error: null };
     } catch (err: any) {
-      console.error("Database product update transaction aborted:", err);
+      console.error("%c🚨 TRANSACTION ABORTED REVERT STATE CAUGHT:", "color: #FF2C2C; font-weight: bold;", err);
       return { success: false, error: err };
     }
   },
 
-  // ✅ NEW: BATCH DELETION TRANSACTION HANDLER FOR DELETE MODE
+  // BATCH DELETION TRANSACTION HANDLER
   async deleteProductsBatch(
     productIds: number[],
     userId: string | number | undefined
@@ -165,7 +181,6 @@ export const ProductService = {
     try {
       if (productIds.length === 0) return { success: true };
 
-      // 1. Clear linked recipe lines first to satisfy foreign key constraints
       const { error: recipeError } = await supabase
         .from('prod_ingredient')
         .delete()
@@ -173,7 +188,6 @@ export const ProductService = {
 
       if (recipeError) throw recipeError;
 
-      // 2. Delete primary product records from the products table
       const { error: prodError } = await supabase
         .from('products')
         .delete()
@@ -181,7 +195,6 @@ export const ProductService = {
 
       if (prodError) throw prodError;
 
-      // 3. Log the batch removal action inside activity tracking logs
       await supabase.from('activity_log').insert([
         {
           user_id: userId ? BigInt(userId) : null,

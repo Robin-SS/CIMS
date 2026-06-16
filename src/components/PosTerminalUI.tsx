@@ -2,8 +2,9 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Product } from '../types/Product';
 import { useInventory } from '../context/InventoryContext';
-// FIXED: Removed the unused ShoppingCart import to keep compilation clean
 import { AlertTriangle, Plus, Trash2, X } from 'lucide-react';
+import type { ActivityLog } from '../types/ActivityLog';
+
 import cafeLogo    from '../assets/cafeLogo.png';
 import homeIcon    from '../assets/homeIcon.png';
 import posIcon     from '../assets/posIcon.png';
@@ -13,6 +14,7 @@ import addIcon     from '../assets/addIcon.png';
 import editIcon    from '../assets/editIcon.png';
 import deleteIcon  from '../assets/deleteIcon.png';
 import adminIcon   from '../assets/adminIcon.png';
+
 
 interface PosTerminalUIProps {
   userRole: string | undefined;
@@ -40,6 +42,7 @@ interface PosTerminalUIProps {
   handleFormSubmit: (e: React.FormEvent) => void;
 
   onProductClick: (product: Product) => void;
+  activityLogs?: ActivityLog[]; 
   children?: React.ReactNode;
 
   // Multi-select deletion tracking props
@@ -48,11 +51,30 @@ interface PosTerminalUIProps {
 }
 
 export default function PosTerminalUI({
-  userRole, products, activeTab, setActiveTab, selectedCategory, onSelectCategory,
-  actionView, setActionView, productName, setProductName, productCategory, setProductCategory,
-  productPrice, setProductPrice, formError, isSubmitting, selectedRecipes,
-  handleAddIngredientRow, handleUpdateRecipeRow, handleRemoveRecipeRow, handleFormSubmit,
-  onProductClick, children,
+  userRole,
+  products,
+  activeTab,
+  setActiveTab,
+  selectedCategory,
+  onSelectCategory,
+  actionView,
+  setActionView,
+  productName,
+  setProductName,
+  productCategory,
+  setProductCategory,
+  productPrice,
+  setProductPrice,
+  formError,
+  isSubmitting,
+  selectedRecipes,
+  handleAddIngredientRow,
+  handleUpdateRecipeRow,
+  handleRemoveRecipeRow,
+  handleFormSubmit,
+  onProductClick,
+  activityLogs,
+  children,
   selectedDeleteIds = [], 
   setSelectedDeleteIds
 }: PosTerminalUIProps) {
@@ -63,6 +85,7 @@ export default function PosTerminalUI({
   const categories = ['ALL', 'CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES', 'EXTRAS'];
 
   const safeProducts = products || [];
+  const safeActivityLogs = activityLogs ?? [];
   const filteredProducts = selectedCategory === 'ALL' 
     ? safeProducts 
     : safeProducts.filter(p => (p.product_category || '').toUpperCase() === selectedCategory);
@@ -206,7 +229,6 @@ export default function PosTerminalUI({
                   )}
                 </div>
 
-                {/* ✅ FIXED: Stripped out form wrapper tag and bound handler straight to onClick */}
                 <button 
                   type="button" 
                   disabled={isSubmitting || productsToDelete.length === 0} 
@@ -327,6 +349,81 @@ export default function PosTerminalUI({
               <div style={{ flexGrow: 1, height: '100%' }}>{children}</div>
             )}
           </aside>
+        </main>
+      )}
+
+      {/* Placeholders for other Top Nav Tabs */}
+      {activeTab === 'TRANSACTIONS' && (
+        <main style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F1F1', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24 }}>
+          <h2 style={{ color: '#8A7E72' }}>Transactions Module Pending...</h2>
+        </main>
+      )}
+      
+      {/* ====================[ RECENT ACTIVITY TAB ]==================== */}
+      {activeTab === 'RECENT ACTIVITY' && (
+        <main style={{ 
+          flexGrow: 1, 
+          background: '#FFFFFF', 
+          borderRadius: 12, 
+          border: '1px solid #D3D3D3', 
+          marginBottom: 24, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden',
+          boxShadow: '0 4px 40px rgba(0,0,0,0.02)'
+        }}>
+          
+          {/* TITLE BAR */}
+          <div style={{ background: '#F1F1F1', padding: '12px 20px', borderBottom: '1px solid #E5E5E5' }}>
+            <h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase' }}>
+              RECENT ACTIVITY
+            </h2>
+          </div>
+
+          {/* TABLE HEADERS */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
+            padding: '12px 20px', 
+            background: '#F9F8F6', 
+            borderBottom: '1px solid #E5E5E5', 
+            fontSize: 12, 
+            fontWeight: 600, 
+            color: '#A39BA6' 
+          }}>
+            <span style={{ textAlign: 'center' }}>User ID</span>
+            <span style={{ textAlign: 'center' }}>Log ID</span>
+            <span>Activity</span>
+            <span>Target</span>
+            <span style={{ textAlign: 'right' }}>Timestamp</span>
+          </div>
+
+          {/* TABLE BODY */}
+          <div style={{ flexGrow: 1, overflowY: 'auto' }}>
+            {safeActivityLogs.map((log) => (
+              <div key={log.log_id} style={{ 
+                display: 'grid', 
+                gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
+                padding: '16px 20px', 
+                borderBottom: '1px solid #F9F8F6',
+                fontSize: 13,
+                color: '#1E1E1E',
+                alignItems: 'center'
+              }}>
+                <span style={{ textAlign: 'center' }}>{log.user_id}</span>
+                <span style={{ textAlign: 'center' }}>{log.log_id}</span>
+                <span>{log.activity}</span>
+                <span>{log.target}</span>
+                <span style={{ textAlign: 'right' }}> {new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')} </span>
+              </div>
+            ))}
+            
+            {safeActivityLogs.length === 0 && (
+              <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>
+                No recent activity logs found.
+              </div>
+            )}
+          </div>
         </main>
       )}
 

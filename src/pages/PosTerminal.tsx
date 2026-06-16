@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProducts, ProductService } from '../services/ProductService'; 
+import { useActivityLogs, ActivityService } from '../services/ActivityService'; 
 import PosTerminalUI from '../components/PosTerminalUI';
 import OrderSummary, { type OrderItem } from '../features/OrderSummary';
 import AddProductForm from '../features/AddProductForm'; 
@@ -9,7 +10,9 @@ import type { Product } from '../types/Product';
 
 export default function PosTerminal() {
   const { user } = useAuth();
+  
   const { products, isLoading, error, refetch: refetchProducts } = useProducts(); 
+  const { logs, refetch: refetchLogs } = useActivityLogs(); 
   
   const [activeTab, setActiveTab] = useState<string>('POINT OF SALES');
   const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
@@ -18,30 +21,27 @@ export default function PosTerminal() {
   
   const [selectedProductId, setSelectedProductId] = useState<number | null>(null);
 
-  // State tracking array to manage multi-select batch deletion lines
   const [selectedDeleteIds, setSelectedDeleteIds] = useState<number[]>([]);
   const [isDeleting, setIsDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string>('');
 
-  // Enhanced conditional click handler supporting checkout, details loading, and multi-selection
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+
   const handleProductClick = (product: Product) => {
-    // A. Intercept click if in Delete Mode to manage bulk selection queue
     if (actionView === 'delete') {
       setSelectedDeleteIds((prev) => 
         prev.includes(product.product_id)
-          ? prev.filter(id => id !== product.product_id) // Deselect if already queued
-          : [...prev, product.product_id]                // Append to queue
+          ? prev.filter(id => id !== product.product_id) 
+          : [...prev, product.product_id]                
       );
       return;
     }
 
-    // B. Intercept click if in Edit Mode to load form details
     if (actionView === 'edit') {
       setSelectedProductId(product.product_id);
       return;
     }
 
-    // C. Default Point-of-Sale behavior: add items to cart
     setOrderItems((prevItems) => {
       const existingItem = prevItems.find((item) => item.product.product_id === product.product_id);
       if (existingItem) {
@@ -60,7 +60,7 @@ export default function PosTerminal() {
           return { ...item, quantity: item.quantity + delta };
         }
         return item;
-      }).filter((item) => item.quantity > 0); 
+      }).filter((item) => item.quantity > 0);
     });
   };
 
@@ -69,9 +69,8 @@ export default function PosTerminal() {
     setSelectedProductId(null);
   };
 
-  // ✅ FIXED: Added event signature context mappings to handle standard event triggers cleanly
   const handleConfirmBatchDelete = async (e?: React.FormEvent) => {
-    if (e) e.preventDefault(); // Prevent native form refresh side-effects
+    if (e) e.preventDefault(); 
     if (selectedDeleteIds.length === 0) return;
     
     setDeleteError('');
@@ -86,8 +85,30 @@ export default function PosTerminal() {
     } else {
       setSelectedDeleteIds([]);
       setActionView('menu');
-      refetchProducts(); // Instantly refresh the grid catalog
+      refetchProducts(); 
     }
+  };
+
+  const handleOpenPaymentModal = () => {
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleConfirmPayment = async (paymentMethod: string) => {
+    if (!user || orderItems.length === 0) return;
+
+    const totalBill = orderItems.reduce((sum, item) => sum + (Number(item.product.product_price) * item.quantity) * 1.12, 0);
+    
+    await ActivityService.logAction(
+      user.id, 
+      `Processed Order via ${paymentMethod} (Total: Php ${totalBill.toFixed(2)})`, 
+      'Transactions'
+    );
+
+    setOrderItems([]);
+    setIsPaymentModalOpen(false);
+    refetchLogs();
+    
+    alert(`Order processed successfully using ${paymentMethod}!`);
   };
 
   if (isLoading) {
@@ -121,45 +142,97 @@ export default function PosTerminal() {
             const isEditingItem = actionView === 'edit' && selectedProductId !== null;
 
             return (
-              <PosTerminalUI
-                userRole={user?.role}
-                products={products}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                selectedCategory={selectedCategory}
-                onSelectCategory={setSelectedCategory}
-                onProductClick={handleProductClick}
-                actionView={actionView}
-                setActionView={setActionView}
-                
-                // Form Fields state selections
-                productName={isEditingItem ? editProps.productName : addProps.productName}
-                setProductName={isEditingItem ? editProps.setProductName : addProps.setProductName}
-                productCategory={isEditingItem ? editProps.productCategory : addProps.productCategory}
-                setProductCategory={isEditingItem ? editProps.setProductCategory : addProps.setProductCategory}
-                productPrice={isEditingItem ? editProps.productPrice : addProps.productPrice}
-                setProductPrice={isEditingItem ? editProps.setProductPrice : addProps.setProductPrice}
-                formError={actionView === 'delete' ? deleteError : (isEditingItem ? editProps.formError : addProps.formError)}
-                isSubmitting={actionView === 'delete' ? isDeleting : (isEditingItem ? editProps.isSubmitting : addProps.isSubmitting)}
-                selectedRecipes={isEditingItem ? editProps.selectedRecipes : addProps.selectedRecipes}
-                handleAddIngredientRow={isEditingItem ? editProps.handleAddIngredientRow : addProps.handleAddIngredientRow}
-                handleUpdateRecipeRow={isEditingItem ? editProps.handleUpdateRecipeRow : addProps.handleUpdateRecipeRow}
-                handleRemoveRecipeRow={isEditingItem ? editProps.handleRemoveRecipeRow : addProps.handleRemoveRecipeRow}
-                
-                // Override submit function to handle batch deletion when in delete mode
-                handleFormSubmit={actionView === 'delete' ? handleConfirmBatchDelete : (isEditingItem ? editProps.handleFormSubmit : addProps.handleFormSubmit)}
-                
-                // Pass deletion queue tracking arrays down to the presentation layer
-                selectedDeleteIds={selectedDeleteIds}
-                setSelectedDeleteIds={setSelectedDeleteIds}
-              >
-                {user?.role !== 'admin' && (
-                  <OrderSummary 
-                    orderItems={orderItems} 
-                    onUpdateQuantity={handleUpdateQuantity} 
-                  />
+              <>
+                <PosTerminalUI
+                  userRole={user?.role}
+                  products={products}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  selectedCategory={selectedCategory}
+                  onSelectCategory={setSelectedCategory}
+                  onProductClick={handleProductClick}
+                  actionView={actionView}
+                  setActionView={setActionView}
+                  activityLogs={logs} 
+                  
+                  // Form Fields state selections
+                  productName={isEditingItem ? editProps.productName : addProps.productName}
+                  setProductName={isEditingItem ? editProps.setProductName : addProps.setProductName}
+                  productCategory={isEditingItem ? editProps.productCategory : addProps.productCategory}
+                  setProductCategory={isEditingItem ? editProps.setProductCategory : addProps.setProductCategory}
+                  productPrice={isEditingItem ? editProps.productPrice : addProps.productPrice}
+                  setProductPrice={isEditingItem ? editProps.setProductPrice : addProps.setProductPrice}
+                  formError={actionView === 'delete' ? deleteError : (isEditingItem ? editProps.formError : addProps.formError)}
+                  isSubmitting={actionView === 'delete' ? isDeleting : (isEditingItem ? editProps.isSubmitting : addProps.isSubmitting)}
+                  
+                  // ✅ FIX 1: Explicitly pass down the edited collection array
+                  selectedRecipes={isEditingItem ? editProps.selectedRecipes : addProps.selectedRecipes}
+                  handleAddIngredientRow={isEditingItem ? editProps.handleAddIngredientRow : addProps.handleAddIngredientRow}
+                  handleUpdateRecipeRow={isEditingItem ? editProps.handleUpdateRecipeRow : addProps.handleUpdateRecipeRow}
+                  
+                  // ✅ FIX 2: Explicitly hook the deletion control context down
+                  handleRemoveRecipeRow={isEditingItem ? editProps.handleRemoveRecipeRow : addProps.handleRemoveRecipeRow}
+                  
+                  // ✅ FIX 3: Bound standard form actions directly to editProps.handleFormSubmit when editing
+                  handleFormSubmit={
+                    actionView === 'delete' 
+                      ? handleConfirmBatchDelete 
+                      : isEditingItem 
+                        ? editProps.handleFormSubmit 
+                        : addProps.handleFormSubmit
+                  }
+                  
+                  selectedDeleteIds={selectedDeleteIds}
+                  setSelectedDeleteIds={setSelectedDeleteIds}
+                >
+                  {user?.role !== 'admin' && (
+                    <OrderSummary 
+                      orderItems={orderItems} 
+                      onUpdateQuantity={handleUpdateQuantity} 
+                      onCheckout={handleOpenPaymentModal} 
+                    />
+                  )}
+                </PosTerminalUI>
+
+                {/* ====================[ INTERMEDIATE PAYMENT METHOD MODAL ]==================== */}
+                {isPaymentModalOpen && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
+                    <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 400, display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif" }}>
+                      <h2 style={{ margin: 0, color: '#1E1E1E', fontSize: 20, fontWeight: 800, textAlign: 'center', letterSpacing: -0.5 }}>SELECT PAYMENT METHOD</h2>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+                        <button 
+                          onClick={() => handleConfirmPayment('Cash')}
+                          style={{ padding: '20px 16px', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#FFF5EB'; e.currentTarget.style.borderColor = '#D1915F'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#D3C9BE'; }}
+                        >
+                          <span style={{ fontSize: 24 }}>💵</span>
+                          <span>CASH</span>
+                        </button>
+                        <button 
+                          onClick={() => handleConfirmPayment('Card/E-Wallet')}
+                          style={{ padding: '20px 16px', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#FFF5EB'; e.currentTarget.style.borderColor = '#D1915F'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#D3C9BE'; }}
+                        >
+                          <span style={{ fontSize: 24 }}>💳</span>
+                          <span>CARD</span>
+                        </button>
+                      </div>
+
+                      <button 
+                        onClick={() => setIsPaymentModalOpen(false)}
+                        style={{ padding: '8px 12px', background: 'transparent', border: 'none', color: '#A39BA6', fontWeight: 600, cursor: 'pointer', fontSize: 13, alignSelf: 'center', transition: 'color 0.2s' }}
+                        onMouseEnter={e => e.currentTarget.style.color = '#1E1E1E'}
+                        onMouseLeave={e => e.currentTarget.style.color = '#A39BA6'}
+                      >
+                        Cancel Transaction
+                      </button>
+                    </div>
+                  </div>
                 )}
-              </PosTerminalUI>
+              </>
             );
           }}
         </EditProductForm>
