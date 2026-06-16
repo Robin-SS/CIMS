@@ -14,7 +14,7 @@ export const ActivityService = {
     return { data: data as ActivityLog[] | null, error };
   },
 
-  // 2. 🌟 THE MISSING FUNCTION TypeScript was looking for 🌟
+
   async logAction(userId: number, activity: string, target: string) {
     const generatedLogId = `LOG-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
 
@@ -41,7 +41,6 @@ export function useActivityLogs() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
     async function fetchLogs() {
       setIsLoading(true);
       const { data, error } = await ActivityService.getRecentActivity();
@@ -55,8 +54,9 @@ export function useActivityLogs() {
       setIsLoading(false);
     }
 
+  useEffect(() => {
     fetchLogs();
   }, []);
 
-  return { logs, isLoading, error };
+  return { logs, isLoading, error, refetch: fetchLogs };
 }
