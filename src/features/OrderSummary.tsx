@@ -9,9 +9,10 @@ export interface OrderItem {
 interface OrderSummaryProps {
   orderItems: OrderItem[];
   onUpdateQuantity: (productId: number, delta: number) => void;
+  onCheckout: () => void;
 }
 
-export default function OrderSummary({ orderItems, onUpdateQuantity }: OrderSummaryProps) {
+export default function OrderSummary({ orderItems, onUpdateQuantity, onCheckout }: OrderSummaryProps) {
   // Calculations
   const totalQuantity = orderItems.reduce((sum, item) => sum + item.quantity, 0);
   const totalAmount = orderItems.reduce((sum, item) => sum + (Number(item.product.product_price) * item.quantity), 0);
@@ -138,10 +139,20 @@ export default function OrderSummary({ orderItems, onUpdateQuantity }: OrderSumm
         <span style={{ flexGrow: 1, fontSize: 12, fontWeight: 600, color: '#A39BA6', textAlign: 'center', cursor: 'pointer' }}>
           Add Promo/Voucher
         </span>
-        <button style={{
-          background: '#09AA29', color: '#FFFFFF', border: 'none', borderRadius: 8,
-          padding: '14px 16px', fontSize: 12, fontWeight: 800, textTransform: 'uppercase', cursor: 'pointer',
-          boxShadow: '0 4px 12px rgba(9, 170, 41, 0.2)'
+        <button 
+         onClick={onCheckout} 
+          disabled={orderItems.length === 0} 
+          style={{
+            background: orderItems.length === 0 ? '#A39BA6' : '#09AA29', 
+            color: '#FFFFFF', 
+            border: 'none', 
+            borderRadius: 8,
+            padding: '14px 16px', 
+            fontSize: 12, 
+            fontWeight: 800, 
+            textTransform: 'uppercase', 
+            cursor: orderItems.length === 0 ? 'not-allowed' : 'pointer', // Change cursor
+            boxShadow: orderItems.length === 0 ? 'none' : '0 4px 12px rgba(9, 170, 41, 0.2)' 
         }}>
           Choose Payment Method
         </button>
