@@ -92,6 +92,110 @@ export const ProductService = {
     ]);
 
     return { success: true, error: null };
+  },
+
+  // NEW DATABASE UPDATE TRANSACTION HANDLER FOR EDIT MODE
+  async updateProductWithIngredients(
+    productId: number,
+    name: string,
+    category: string,
+    price: number,
+    recipes: SelectedIngredientRecipe[],
+    userId: string | number | undefined
+  ) {
+    try {
+      // 1. Update the primary fields in the 'products' table
+      const { error: prodError } = await supabase
+        .from('products')
+        .update({
+          product_name: name,
+          product_category: category,
+          product_price: price,
+        })
+        .eq('product_id', productId);
+
+      if (prodError) throw prodError;
+
+      // 2. Clear out any old recipe associations to avoid duplication conflicts
+      const { error: deleteError } = await supabase
+        .from('prod_ingredient')
+        .delete()
+        .eq('product_id', productId);
+
+      if (deleteError) throw deleteError;
+
+      // 3. Rewrite updated ingredient connections if any are assigned
+      if (recipes.length > 0) {
+        const recipeRows = recipes.map((rec) => ({
+          product_id: productId,
+          ingredient_id: rec.ingredient_id,
+          standard_quantity: rec.standard_quantity,
+          standard_measurement_unit: rec.standard_measurement_unit
+        }));
+
+        const { error: insertError } = await supabase
+          .from('prod_ingredient')
+          .insert(recipeRows);
+
+        if (insertError) throw insertError;
+      }
+
+      // 4. Log the modification step smoothly inside the activity tracker
+      await supabase.from('activity_log').insert([
+        {
+          user_id: userId ? BigInt(userId) : null,
+          activity: `Updated product "${name}" details and recipe mappings.`,
+          target: 'products',
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+      return { success: true, error: null };
+    } catch (err: any) {
+      console.error("Database product update transaction aborted:", err);
+      return { success: false, error: err };
+    }
+  },
+
+  // ✅ NEW: BATCH DELETION TRANSACTION HANDLER FOR DELETE MODE
+  async deleteProductsBatch(
+    productIds: number[],
+    userId: string | number | undefined
+  ): Promise<{ success: boolean; error?: any }> {
+    try {
+      if (productIds.length === 0) return { success: true };
+
+      // 1. Clear linked recipe lines first to satisfy foreign key constraints
+      const { error: recipeError } = await supabase
+        .from('prod_ingredient')
+        .delete()
+        .in('product_id', productIds);
+
+      if (recipeError) throw recipeError;
+
+      // 2. Delete primary product records from the products table
+      const { error: prodError } = await supabase
+        .from('products')
+        .delete()
+        .in('product_id', productIds);
+
+      if (prodError) throw prodError;
+
+      // 3. Log the batch removal action inside activity tracking logs
+      await supabase.from('activity_log').insert([
+        {
+          user_id: userId ? BigInt(userId) : null,
+          activity: `Batch deleted ${productIds.length} menu items from the product catalog matrix.`,
+          target: 'products',
+          created_at: new Date().toISOString()
+        }
+      ]);
+
+      return { success: true, error: null };
+    } catch (err: any) {
+      console.error("Database batch deletion transaction aborted:", err);
+      return { success: false, error: err };
+    }
   }
 };
 

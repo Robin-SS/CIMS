@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import type { Product } from '../types/Product';
 import { useInventory } from '../context/InventoryContext';
 // FIXED: Removed the unused ShoppingCart import to keep compilation clean
-import { AlertTriangle, Plus, Trash2 } from 'lucide-react';
+import { AlertTriangle, Plus, Trash2, X } from 'lucide-react';
 import cafeLogo    from '../assets/cafeLogo.png';
 import homeIcon    from '../assets/homeIcon.png';
 import posIcon     from '../assets/posIcon.png';
@@ -41,6 +41,10 @@ interface PosTerminalUIProps {
 
   onProductClick: (product: Product) => void;
   children?: React.ReactNode;
+
+  // Multi-select deletion tracking props
+  selectedDeleteIds?: number[];
+  setSelectedDeleteIds?: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 export default function PosTerminalUI({
@@ -48,14 +52,14 @@ export default function PosTerminalUI({
   actionView, setActionView, productName, setProductName, productCategory, setProductCategory,
   productPrice, setProductPrice, formError, isSubmitting, selectedRecipes,
   handleAddIngredientRow, handleUpdateRecipeRow, handleRemoveRecipeRow, handleFormSubmit,
-  onProductClick, children
+  onProductClick, children,
+  selectedDeleteIds = [], 
+  setSelectedDeleteIds
 }: PosTerminalUIProps) {
   
   const navigate = useNavigate();
   const { ingredients } = useInventory();
   const isAdmin = userRole?.toLowerCase() === 'admin';
-  
-  // Adjusted to match uppercase checking for your frontend tabs, while select dropdown options handle database capitalization mapping
   const categories = ['ALL', 'CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES', 'EXTRAS'];
 
   const safeProducts = products || [];
@@ -63,10 +67,19 @@ export default function PosTerminalUI({
     ? safeProducts 
     : safeProducts.filter(p => (p.product_category || '').toUpperCase() === selectedCategory);
 
+  // Find the product objects that are currently flagged for deletion to render them in the summary list
+  const productsToDelete = safeProducts.filter(p => selectedDeleteIds.includes(p.product_id));
+
   // Styled design variables matched back to your system aesthetic rules
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#D1915F', marginBottom: 4 };
   const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 12, border: '1px solid #D1915F', fontSize: 13, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF', boxSizing: 'border-box' };
   const submitBtnStyle: React.CSSProperties = { width: '100%', padding: '15px 0', background: '#D1915F', color: '#FFFFFF', fontWeight: 700, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer', marginTop: 4 };
+
+  const handleRemoveFromDeleteQueue = (id: number) => {
+    if (setSelectedDeleteIds) {
+      setSelectedDeleteIds(prev => prev.filter(item => item !== id));
+    }
+  };
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif", padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
@@ -111,27 +124,117 @@ export default function PosTerminalUI({
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 16, overflowY: 'auto', maxHeight: 500, paddingRight: 8 }}>
-              {filteredProducts.map(product => (
-                <button key={product.product_id} onClick={() => onProductClick(product)} disabled={!product.availability} style={{ background: '#FFFFFF', border: '1px solid #E5E5E5', borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: product.availability ? 'pointer' : 'not-allowed', opacity: product.availability ? 1 : 0.5, transition: 'transform 0.1s ease, box-shadow 0.1s ease', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }} onMouseEnter={e => { if(product.availability) { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.06)'; }}} onMouseLeave={e => { if(product.availability) { e.currentTarget.style.transform = ''; e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.02)'; }}}>
-                  <div style={{ width: 60, height: 80, backgroundColor: '#F9F8F6', borderRadius: 8, marginBottom: 12, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                    {product.image_url ? <img src={product.image_url} alt={product.product_name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>🥤</span>}
-                  </div>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: '#1E1E1E', textAlign: 'center', lineHeight: 1.2, marginBottom: 4, height: 26, overflow: 'hidden' }}>{product.product_name}</span>
-                  <span style={{ fontSize: 12, fontWeight: 800, color: '#D1915F' }}>  ₱ {Number(product.product_price).toFixed(2)} </span>
-                </button>
-              ))}
+              {filteredProducts.map(product => {
+                const isSelectedForDeletion = selectedDeleteIds.includes(product.product_id);
+                
+                return (
+                  <button 
+                    key={product.product_id} 
+                    onClick={() => onProductClick(product)} 
+                    disabled={!product.availability && actionView !== 'edit' && actionView !== 'delete'} 
+                    style={{ 
+                      background: '#FFFFFF', 
+                      border: isSelectedForDeletion 
+                        ? '2px solid #FF2C2C' 
+                        : actionView === 'edit' ? '1.5px dashed #D1915F' : '1px solid #E5E5E5', 
+                      borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', 
+                      cursor: 'pointer', 
+                      opacity: (product.availability || actionView === 'edit' || actionView === 'delete') ? 1 : 0.5, 
+                      transition: 'transform 0.1s ease, box-shadow 0.1s ease', boxSizing: 'border-box',
+                      boxShadow: isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
+                      transform: isSelectedForDeletion ? 'scale(0.97)' : 'none'
+                    }} 
+                    onMouseEnter={e => { e.currentTarget.style.transform = isSelectedForDeletion ? 'scale(0.97)' : 'translateY(-2px)'; e.currentTarget.style.boxShadow = isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.2)' : '0 6px 16px rgba(0,0,0,0.06)'; }} 
+                    onMouseLeave={e => { e.currentTarget.style.transform = isSelectedForDeletion ? 'scale(0.97)' : ''; e.currentTarget.style.boxShadow = isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)'; }}
+                  >
+                    <div style={{ width: 60, height: 80, backgroundColor: '#F9F8F6', borderRadius: 8, marginBottom: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+                      {isSelectedForDeletion && (
+                        <div style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#FF2C2C', color: '#FFF', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold' }}>✓</div>
+                      )}
+                      {product.image_url ? <img src={product.image_url} alt={product.product_name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>🥤</span>}
+                    </div>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: '#1E1E1E', textAlign: 'center', lineHeight: 1.2, marginBottom: 4, height: 26, overflow: 'hidden' }}>{product.product_name}</span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#D1915F' }}>  ₱ {Number(product.product_price).toFixed(2)} </span>
+                  </button>
+                );
+              })}
             </div>
           </section>
 
           {/* RIGHT SIDEBAR WRAPPER PANEL */}
           <aside style={{ display: 'flex', flexDirection: 'column' }}>
-            {actionView === 'add' ? (
-              // PHYSICAL THEME RENDERING FOR THE ADD PRODUCT INTERFACE FORM
+            {actionView === 'delete' ? (
+              // BATCH REMOVAL PANEL
+              <div style={{ background: '#FFF8F8', border: '1px solid #FFC1C1', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FF2C2C' }}>DELETE PRODUCTS</h3>
+                  <button type="button" onClick={() => { setActionView('menu'); if(setSelectedDeleteIds) setSelectedDeleteIds([]); }} style={{ background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
+                </div>
+
+                <div style={{ background: '#FFF0F0', color: '#C53030', fontSize: 12, padding: '10px 12px', borderRadius: 10, fontWeight: 600 }}>
+                  ⚠️ Multi-select active. Select cards on the left grid to queue them for permanent extraction.
+                </div>
+
+                {formError && (
+                  <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
+                    <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
+                <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: 280, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {productsToDelete.length === 0 ? (
+                    <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: 13, marginTop: 40, fontStyle: 'italic' }}>
+                      No items currently queued.
+                    </div>
+                  ) : (
+                    productsToDelete.map((prod) => (
+                      <div key={prod.product_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '10px 14px', borderRadius: 10, border: '1px solid #FFD8D8' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: '#1E1E1E' }}>{prod.product_name}</span>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: '#FF2C2C' }}>₱ {Number(prod.product_price).toFixed(2)}</span>
+                        </div>
+                        <button 
+                          type="button" 
+                          onClick={() => handleRemoveFromDeleteQueue(prod.product_id)} 
+                          style={{ background: 'none', border: 'none', color: '#A0AEC0', cursor: 'pointer', padding: 4 }}
+                        >
+                          <X style={{ width: 16, height: 16 }} />
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {/* ✅ FIXED: Stripped out form wrapper tag and bound handler straight to onClick */}
+                <button 
+                  type="button" 
+                  disabled={isSubmitting || productsToDelete.length === 0} 
+                  onClick={handleFormSubmit}
+                  style={{ 
+                    ...submitBtnStyle, 
+                    background: productsToDelete.length === 0 ? '#E2E8F0' : isSubmitting ? '#B0A89E' : '#FF2C2C', 
+                    color: productsToDelete.length === 0 ? '#A0AEC0' : '#FFF' 
+                  }}
+                >
+                  {isSubmitting ? 'DELETING SELECTED...' : `CONFIRM REMOVAL (${productsToDelete.length})`}
+                </button>
+              </div>
+            ) : actionView === 'add' || actionView === 'edit' ? (
+              // ADD AND EDIT PRODUCT FORMS
               <div style={{ background: '#F9F8F6', border: '1px solid #D1915F', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', position: 'relative', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E1E1E' }}>ADD MENU ITEM</h3>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E1E1E', textTransform: 'uppercase' }}>
+                    {actionView === 'edit' ? 'Edit Menu Item' : 'Add Menu Item'}
+                  </h3>
                   <button type="button" onClick={() => setActionView('menu')} style={{ background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
                 </div>
+
+                {actionView === 'edit' && !productName && (
+                  <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309', fontSize: 11, padding: '10px 12px', borderRadius: 10, textAlign: 'center', fontWeight: 600 }}>
+                    💡 Tap any catalog product card on the left to pre-fill its form fields.
+                  </div>
+                )}
 
                 {formError && (
                   <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
@@ -149,7 +252,6 @@ export default function PosTerminalUI({
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div>
                       <label style={labelStyle}>Category</label>
-                      {/* FIXED: Dropdown values mapped out to align directly with your exact case-sensitive Supabase Enum labels */}
                       <select value={productCategory} onChange={e => setProductCategory(e.target.value)} style={inputStyle}>
                         <option value="Classics">Classics</option>
                         <option value="Signatures">Signatures</option>
@@ -165,7 +267,6 @@ export default function PosTerminalUI({
                     </div>
                   </div>
 
-                  {/* RECIPE INGREDIENT ROW ROW MANIPULATION MAPPER TABLE BLOCK */}
                   <div style={{ borderTop: '1px solid #D3C9BE', paddingTop: 10, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <label style={{ ...labelStyle, marginBottom: 0 }}>Recipe Ingredients</label>
@@ -182,7 +283,6 @@ export default function PosTerminalUI({
                               <option key={ing.ingredient_id} value={ing.ingredient_id}>{ing.ingredient_name}</option>
                             ))}
                           </select>
-                          {/* FIXED: Included safe evaluation to cast NaN inputs back to empty tracking metrics so the user can backspace smoothly */}
                           <input 
                             type="number" 
                             step="0.1" 
@@ -202,8 +302,8 @@ export default function PosTerminalUI({
                     </div>
                   </div>
 
-                  <button type="submit" disabled={isSubmitting} style={{ ...submitBtnStyle, background: isSubmitting ? '#B0A89E' : '#09AA29' }}>
-                    {isSubmitting ? 'SAVING ITEM...' : 'CONFIRM AND PUBLISH'}
+                  <button type="submit" disabled={isSubmitting} style={{ ...submitBtnStyle, background: isSubmitting ? '#B0A89E' : actionView === 'edit' ? '#D1915F' : '#09AA29' }}>
+                    {isSubmitting ? 'SAVING CHANGES...' : actionView === 'edit' ? 'CONFIRM AND UPDATE' : 'CONFIRM AND PUBLISH'}
                   </button>
                 </form>
               </div>
@@ -214,11 +314,11 @@ export default function PosTerminalUI({
                   <div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="Add" style={{ width: 24, height: 24 }} /></div>
                   <span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>ADD</span>
                 </button>
-                <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
+                <button onClick={() => setActionView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
                   <div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={editIcon} alt="Edit" style={{ width: 24, height: 24 }} /></div>
                   <span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>EDIT</span>
                 </button>
-                <button style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
+                <button onClick={() => setActionView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
                   <div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="Delete" style={{ width: 24, height: 24 }} /></div>
                   <span style={{ fontSize: 20, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span>
                 </button>
@@ -227,18 +327,6 @@ export default function PosTerminalUI({
               <div style={{ flexGrow: 1, height: '100%' }}>{children}</div>
             )}
           </aside>
-        </main>
-      )}
-
-      {/* Placeholders for other Top Nav Tabs */}
-      {activeTab === 'TRANSACTIONS' && (
-        <main style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F1F1', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24 }}>
-          <h2 style={{ color: '#8A7E72' }}>Transactions Module Pending...</h2>
-        </main>
-      )}
-      {activeTab === 'RECENT ACTIVITY' && (
-        <main style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F1F1', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24 }}>
-          <h2 style={{ color: '#8A7E72' }}>Recent Activity Module Pending...</h2>
         </main>
       )}
 
