@@ -3,6 +3,7 @@ import { supabase } from '../supabaseClient';
 
 // Define what a securely authenticated user profile looks like
 interface UserProfile {
+  user_id: number; // Added to interface tracking signature
   username: string;
   display_name: string;
   role: 'admin' | 'employee';
@@ -26,23 +27,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     async function checkActiveSession() {
       try {
-        // 1. Ask Supabase if a valid cryptographic session cookie/token exists
         const { data: { session } } = await supabase.auth.getSession();
         
         if (session && session.user) {
-          // Extract the username back out of the metadata or virtual email string
           const virtualEmail = session.user.email || '';
           const currentUsername = virtualEmail.split('@')[0];
 
-          // 2. Fetch profile records matching that validated token user
+          // Fetch profile records matching that validated token user (including id)
           const { data: profile } = await supabase
             .from('profiles')
-            .select('username, display_name, role')
+            .select('id, username, display_name, role') // Select id from db
             .eq('username', currentUsername)
             .single();
 
           if (profile) {
             setUser({
+              user_id: Number(profile.id), // Set state value cleanly
               username: profile.username,
               display_name: profile.display_name,
               role: profile.role as 'admin' | 'employee',
@@ -62,11 +62,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Secure token-based login handler
   const login = async (username: string, inputPassword: string) => {
     try {
-      // 1. Convert custom username to a virtual corporate email format for Supabase Auth
       const virtualEmail = `${username.trim().toLowerCase()}@cafe.local`;
 
-      // 2. Authenticate against Supabase Auth. This sets an encrypted JWT token 
-      // automatically inside browser storage and secures communication.
       const { error: authError } = await supabase.auth.signInWithPassword({
         email: virtualEmail,
         password: inputPassword,
@@ -76,10 +73,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'Invalid Credentials' };
       }
 
-      // 3. Query profiles table to retrieve display settings and application permissions
       const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('username, display_name, role')
+        .select('id, username, display_name, role') // Select id from db
         .eq('username', username)
         .single();
 
@@ -88,6 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       const loggedInUser: UserProfile = {
+        user_id: Number(profile.id), // Set state value cleanly
         username: profile.username,
         display_name: profile.display_name,
         role: profile.role as 'admin' | 'employee'
@@ -101,7 +98,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  // Securely terminate session tokens globally
   const logout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
