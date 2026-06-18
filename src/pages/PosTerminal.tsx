@@ -145,6 +145,8 @@ export default function PosTerminal() {
               <>
                 <PosTerminalUI
                   userRole={user?.role}
+                  userId={user?.user_id}
+                  username={user?.username}
                   products={products}
                   activeTab={activeTab}
                   setActiveTab={setActiveTab}
@@ -154,6 +156,7 @@ export default function PosTerminal() {
                   actionView={actionView}
                   setActionView={setActionView}
                   activityLogs={logs} 
+                  refetchActivityLogs={refetchLogs}
                   
                   // Form Fields state selections
                   productName={isEditingItem ? editProps.productName : addProps.productName}

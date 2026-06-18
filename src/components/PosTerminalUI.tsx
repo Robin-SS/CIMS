@@ -1,11 +1,13 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { Product } from '../types/Product';
 import { useInventory } from '../context/InventoryContext';
 import { AlertTriangle, Plus, Trash2, X } from 'lucide-react';
 import type { ActivityLog } from '../types/ActivityLog';
+import IngredientAdjustmentForm from '../features/IngredientAdjustmentForm';
+import AdjustmentRequestReviewPanel from '../features/RequestApproval';
 
-import cafeLogo    from '../assets/cafeLogo.png';
+import cafeLogo     from '../assets/cafeLogo.png';
 import homeIcon    from '../assets/homeIcon.png';
 import posIcon     from '../assets/posIcon.png';
 import inventoryIcon from '../assets/inventoryIcon.png';
@@ -14,7 +16,7 @@ import addIcon     from '../assets/addIcon.png';
 import editIcon    from '../assets/editIcon.png';
 import deleteIcon  from '../assets/deleteIcon.png';
 import adminIcon   from '../assets/adminIcon.png';
-
+import { supabase } from '../supabaseClient';
 
 interface PosTerminalUIProps {
   userRole: string | undefined;
@@ -26,7 +28,6 @@ interface PosTerminalUIProps {
   actionView: string;
   setActionView: (view: string) => void;
   
-  // Logical Render Form Prop Mappings
   productName: string;
   setProductName: (v: string) => void;
   productCategory: string;
@@ -43,11 +44,14 @@ interface PosTerminalUIProps {
 
   onProductClick: (product: Product) => void;
   activityLogs?: ActivityLog[]; 
+  refetchActivityLogs?: () => void;
   children?: React.ReactNode;
 
-  // Multi-select deletion tracking props
   selectedDeleteIds?: number[];
   setSelectedDeleteIds?: React.Dispatch<React.SetStateAction<number[]>>;
+  onIngredientRequestSubmit?: (payload: { ingredient_id: number; quantity: number; reason: string }) => Promise<void>;
+  userId?: string | number;
+  username?: string;
 }
 
 export default function PosTerminalUI({
@@ -74,9 +78,12 @@ export default function PosTerminalUI({
   handleFormSubmit,
   onProductClick,
   activityLogs,
+  refetchActivityLogs,
   children,
   selectedDeleteIds = [], 
-  setSelectedDeleteIds
+  setSelectedDeleteIds,
+  userId,
+  username,
 }: PosTerminalUIProps) {
   
   const navigate = useNavigate();
@@ -90,10 +97,102 @@ export default function PosTerminalUI({
     ? safeProducts 
     : safeProducts.filter(p => (p.product_category || '').toUpperCase() === selectedCategory);
 
-  // Find the product objects that are currently flagged for deletion to render them in the summary list
   const productsToDelete = safeProducts.filter(p => selectedDeleteIds.includes(p.product_id));
 
-  // Styled design variables matched back to your system aesthetic rules
+  // --- 1. PROPERLY SCOPED STATE HOOKS (OUTSIDE OF EVENT HANDLERS) ---
+  const [localAdjustmentRequests, setLocalAdjustmentRequests] = useState<any[]>([]);
+  
+  // FIX: Fallback to numerical 2 instead of string "2" to comply with DB profile row logic
+  const activeUserId = userId && String(userId).trim(); 
+  // username is already resolved in AuthContext (from the profiles table),
+  // so it's passed straight in as a prop instead of fetched again here.
+  const currentUsername = username || 'You';
+
+  // --- 2. QUERY READING DATA FORMATTED SPECIFICALLY TO YOUR BACKEND COLUMNS ---
+  const fetchAdjustmentRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('inventory_adjustment_requests') 
+        .select('request_id, quantity, approval_status, requested_by, ingredient_id, reason')
+        .order('request_id', { ascending: false });
+
+      if (error) throw error;
+
+      // Resolve usernames with a separate lookup instead of a named FK join,
+      // since the join breaks if the constraint name isn't an exact match.
+      const requesterIds = Array.from(
+        new Set((data || []).map((req: any) => req.requested_by).filter(Boolean))
+      );
+      let usernameById: Record<string, string> = {};
+
+      if (requesterIds.length > 0) {
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username')
+          .in('id', requesterIds);
+
+        if (profilesError) throw profilesError;
+        usernameById = Object.fromEntries(
+          (profilesData || []).map((p: any) => [p.id, p.username])
+        );
+      }
+
+      const formattedRequests = data.map((req: any) => {
+        const matchedIngredient = ingredients.find((ing) => ing.ingredient_id === req.ingredient_id);
+        return {
+          id: req.request_id, // Maps DB 'request_id' to React local 'id'
+          username: usernameById[req.requested_by] || 'System', 
+          ingredient_id: req.ingredient_id,
+          ingredient_name: matchedIngredient?.ingredient_name || `Ingredient #${req.ingredient_id}`, 
+          quantity: req.quantity,
+          reason: req.reason,
+          status: req.approval_status || 'pending' // Maps DB 'approval_status' to React local 'status'
+        };
+      });
+
+      setLocalAdjustmentRequests(formattedRequests);
+    } catch (error) {
+      console.error("Error running inventory sync query:", error);
+    }
+  };
+
+  // Run automatically when switching tabs
+  useEffect(() => {
+    if (activeTab === 'PRODUCT REQUEST') {
+      fetchAdjustmentRequests();
+    }
+    if (activeTab === 'RECENT ACTIVITY' && refetchActivityLogs) {
+      refetchActivityLogs();
+    }
+  }, [activeTab]);
+
+  // --- 3. OPTIMISTIC UPDATE: show the just-submitted request immediately, ---
+  // then reconcile with the DB in the background. This means the row still
+  // appears even if the re-fetch above fails (e.g. wrong FK relationship
+  // name, or a missing RLS SELECT policy on inventory_adjustment_requests).
+  const handleNewRequestLogged = (insertedRow: any) => {
+    const matchedIngredient = ingredients.find(
+      (ing) => ing.ingredient_id === insertedRow.ingredient_id
+    );
+
+    setLocalAdjustmentRequests((prev) => [
+      {
+        id: insertedRow.request_id,
+        username: currentUsername,
+        ingredient_id: insertedRow.ingredient_id,
+        ingredient_name: matchedIngredient?.ingredient_name || `Ingredient #${insertedRow.ingredient_id}`,
+        quantity: insertedRow.quantity,
+        reason: insertedRow.reason,
+        status: insertedRow.approval_status || 'pending'
+      },
+      ...prev
+    ]);
+
+    // Try to re-sync with the DB so the real username/status come through.
+    // If this silently fails, the optimistic row above still stays visible.
+    fetchAdjustmentRequests();
+  };
+
   const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', color: '#D1915F', marginBottom: 4 };
   const inputStyle: React.CSSProperties = { width: '100%', padding: '8px 12px', borderRadius: 12, border: '1px solid #D1915F', fontSize: 13, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF', boxSizing: 'border-box' };
   const submitBtnStyle: React.CSSProperties = { width: '100%', padding: '15px 0', background: '#D1915F', color: '#FFFFFF', fontWeight: 700, fontSize: 14, borderRadius: 10, border: 'none', cursor: 'pointer', marginTop: 4 };
@@ -118,7 +217,7 @@ export default function PosTerminalUI({
         </div>
 
         <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '1px solid #D3C9BE' }}>
-          {['POINT OF SALES', 'TRANSACTIONS', 'RECENT ACTIVITY'].map((tab) => (
+          {['POINT OF SALES', 'TRANSACTIONS', 'RECENT ACTIVITY', 'PRODUCT REQUEST'].map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: 24, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, letterSpacing: 0.5, transition: 'all 0.2s', backgroundColor: activeTab === tab ? '#F1F1F1' : 'transparent', color: activeTab === tab ? '#1E1E1E' : '#8A7E72' }}>
               {tab}
             </button>
@@ -136,7 +235,6 @@ export default function PosTerminalUI({
       {/* CONDITIONAL MAIN WORKSPACE */}
       {activeTab === 'POINT OF SALES' && (
         <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
-          
           <section style={{ border: '1px solid #D3D3D3', borderRadius: 12, background: '#FFFFFF', padding: 24, boxShadow: '0 4px 40px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 10, borderBottom: '2px solid #F1F1F1' }}>
               {categories.map(category => (
@@ -149,7 +247,6 @@ export default function PosTerminalUI({
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 16, overflowY: 'auto', maxHeight: 500, paddingRight: 8 }}>
               {filteredProducts.map(product => {
                 const isSelectedForDeletion = selectedDeleteIds.includes(product.product_id);
-                
                 return (
                   <button 
                     key={product.product_id} 
@@ -157,193 +254,86 @@ export default function PosTerminalUI({
                     disabled={!product.availability && actionView !== 'edit' && actionView !== 'delete'} 
                     style={{ 
                       background: '#FFFFFF', 
-                      border: isSelectedForDeletion 
-                        ? '2px solid #FF2C2C' 
-                        : actionView === 'edit' ? '1.5px dashed #D1915F' : '1px solid #E5E5E5', 
+                      border: isSelectedForDeletion ? '2px solid #FF2C2C' : actionView === 'edit' ? '1.5px dashed #D1915F' : '1px solid #E5E5E5', 
                       borderRadius: 12, padding: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', 
-                      cursor: 'pointer', 
-                      opacity: (product.availability || actionView === 'edit' || actionView === 'delete') ? 1 : 0.5, 
+                      cursor: 'pointer', opacity: (product.availability || actionView === 'edit' || actionView === 'delete') ? 1 : 0.5, 
                       transition: 'transform 0.1s ease, box-shadow 0.1s ease', boxSizing: 'border-box',
                       boxShadow: isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
                       transform: isSelectedForDeletion ? 'scale(0.97)' : 'none'
                     }} 
-                    onMouseEnter={e => { e.currentTarget.style.transform = isSelectedForDeletion ? 'scale(0.97)' : 'translateY(-2px)'; e.currentTarget.style.boxShadow = isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.2)' : '0 6px 16px rgba(0,0,0,0.06)'; }} 
-                    onMouseLeave={e => { e.currentTarget.style.transform = isSelectedForDeletion ? 'scale(0.97)' : ''; e.currentTarget.style.boxShadow = isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)'; }}
                   >
                     <div style={{ width: 60, height: 80, backgroundColor: '#F9F8F6', borderRadius: 8, marginBottom: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-                      {isSelectedForDeletion && (
-                        <div style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#FF2C2C', color: '#FFF', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold' }}>✓</div>
-                      )}
+                      {isSelectedForDeletion && <div style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#FF2C2C', color: '#FFF', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold' }}>✓</div>}
                       {product.image_url ? <img src={product.image_url} alt={product.product_name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>🥤</span>}
                     </div>
                     <span style={{ fontSize: 11, fontWeight: 700, color: '#1E1E1E', textAlign: 'center', lineHeight: 1.2, marginBottom: 4, height: 26, overflow: 'hidden' }}>{product.product_name}</span>
-                    <span style={{ fontSize: 12, fontWeight: 800, color: '#D1915F' }}>  ₱ {Number(product.product_price).toFixed(2)} </span>
+                    <span style={{ fontSize: 12, fontWeight: 800, color: '#D1915F' }}> ₱ {Number(product.product_price).toFixed(2)} </span>
                   </button>
                 );
               })}
             </div>
           </section>
 
-          {/* RIGHT SIDEBAR WRAPPER PANEL */}
           <aside style={{ display: 'flex', flexDirection: 'column' }}>
             {actionView === 'delete' ? (
-              // BATCH REMOVAL PANEL
               <div style={{ background: '#FFF8F8', border: '1px solid #FFC1C1', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FF2C2C' }}>DELETE PRODUCTS</h3>
                   <button type="button" onClick={() => { setActionView('menu'); if(setSelectedDeleteIds) setSelectedDeleteIds([]); }} style={{ background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
                 </div>
-
-                <div style={{ background: '#FFF0F0', color: '#C53030', fontSize: 12, padding: '10px 12px', borderRadius: 10, fontWeight: 600 }}>
-                  ⚠️ Multi-select active. Select cards on the left grid to queue them for permanent extraction.
-                </div>
-
-                {formError && (
-                  <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} />
-                    <span>{formError}</span>
-                  </div>
-                )}
-
+                <div style={{ background: '#FFF0F0', color: '#C53030', fontSize: 12, padding: '10px 12px', borderRadius: 10, fontWeight: 600 }}>⚠️ Multi-select active. Select cards on the left grid to queue them for permanent extraction.</div>
+                {formError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}><AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} /><span>{formError}</span></div>}
                 <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: 280, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {productsToDelete.length === 0 ? (
-                    <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: 13, marginTop: 40, fontStyle: 'italic' }}>
-                      No items currently queued.
+                  {productsToDelete.length === 0 ? <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: 13, marginTop: 40, fontStyle: 'italic' }}>No items currently queued.</div> : productsToDelete.map((prod) => (
+                    <div key={prod.product_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '10px 14px', borderRadius: 10, border: '1px solid #FFD8D8' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}><span style={{ fontSize: 13, fontWeight: 700, color: '#1E1E1E' }}>{prod.product_name}</span><span style={{ fontSize: 12, fontWeight: 600, color: '#FF2C2C' }}>₱ {Number(prod.product_price).toFixed(2)}</span></div>
+                      <button type="button" onClick={() => handleRemoveFromDeleteQueue(prod.product_id)} style={{ background: 'none', border: 'none', color: '#A0AEC0', cursor: 'pointer', padding: 4 }}><X style={{ width: 16, height: 16 }} /></button>
                     </div>
-                  ) : (
-                    productsToDelete.map((prod) => (
-                      <div key={prod.product_id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#FFFFFF', padding: '10px 14px', borderRadius: 10, border: '1px solid #FFD8D8' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                          <span style={{ fontSize: 13, fontWeight: 700, color: '#1E1E1E' }}>{prod.product_name}</span>
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#FF2C2C' }}>₱ {Number(prod.product_price).toFixed(2)}</span>
-                        </div>
-                        <button 
-                          type="button" 
-                          onClick={() => handleRemoveFromDeleteQueue(prod.product_id)} 
-                          style={{ background: 'none', border: 'none', color: '#A0AEC0', cursor: 'pointer', padding: 4 }}
-                        >
-                          <X style={{ width: 16, height: 16 }} />
-                        </button>
-                      </div>
-                    ))
-                  )}
+                  ))}
                 </div>
-
-                <button 
-                  type="button" 
-                  disabled={isSubmitting || productsToDelete.length === 0} 
-                  onClick={handleFormSubmit}
-                  style={{ 
-                    ...submitBtnStyle, 
-                    background: productsToDelete.length === 0 ? '#E2E8F0' : isSubmitting ? '#B0A89E' : '#FF2C2C', 
-                    color: productsToDelete.length === 0 ? '#A0AEC0' : '#FFF' 
-                  }}
-                >
-                  {isSubmitting ? 'DELETING SELECTED...' : `CONFIRM REMOVAL (${productsToDelete.length})`}
-                </button>
+                <button type="button" disabled={isSubmitting || productsToDelete.length === 0} onClick={handleFormSubmit} style={{ ...submitBtnStyle, background: productsToDelete.length === 0 ? '#E2E8F0' : isSubmitting ? '#B0A89E' : '#FF2C2C', color: productsToDelete.length === 0 ? '#A0AEC0' : '#FFF' }}>{isSubmitting ? 'DELETING SELECTED...' : `CONFIRM REMOVAL (${productsToDelete.length})`}</button>
               </div>
             ) : actionView === 'add' || actionView === 'edit' ? (
-              // ADD AND EDIT PRODUCT FORMS
               <div style={{ background: '#F9F8F6', border: '1px solid #D1915F', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', position: 'relative', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E1E1E', textTransform: 'uppercase' }}>
-                    {actionView === 'edit' ? 'Edit Menu Item' : 'Add Menu Item'}
-                  </h3>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#1E1E1E', textTransform: 'uppercase' }}>{actionView === 'edit' ? 'Edit Menu Item' : 'Add Menu Item'}</h3>
                   <button type="button" onClick={() => setActionView('menu')} style={{ background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
                 </div>
-
-                {actionView === 'edit' && !productName && (
-                  <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309', fontSize: 11, padding: '10px 12px', borderRadius: 10, textAlign: 'center', fontWeight: 600 }}>
-                    💡 Tap any catalog product card on the left to pre-fill its form fields.
-                  </div>
-                )}
-
-                {formError && (
-                  <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}>
-                    <AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} />
-                    <span>{formError}</span>
-                  </div>
-                )}
-
+                {actionView === 'edit' && !productName && <div style={{ background: '#FFFBEB', border: '1px solid #FDE68A', color: '#B45309', fontSize: 11, padding: '10px 12px', borderRadius: 10, textAlign: 'center', fontWeight: 600 }}>💡 Tap any catalog product card on the left to pre-fill its form fields.</div>}
+                {formError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}><AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} /><span>{formError}</span></div>}
                 <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, flexGrow: 1 }}>
-                  <div>
-                    <label style={labelStyle}>Product Name</label>
-                    <input type="text" value={productName} onChange={e => setProductName(e.target.value)} placeholder="e.g., Latte" style={inputStyle} />
-                  </div>
-
+                  <div><label style={labelStyle}>Product Name</label><input type="text" value={productName} onChange={e => setProductName(e.target.value)} placeholder="e.g., Latte" style={inputStyle} /></div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <div>
-                      <label style={labelStyle}>Category</label>
-                      <select value={productCategory} onChange={e => setProductCategory(e.target.value)} style={inputStyle}>
-                        <option value="Classics">Classics</option>
-                        <option value="Signatures">Signatures</option>
-                        <option value="Non-Coffee">Non-Coffee</option>
-                        <option value="Desserts">Desserts</option>
-                        <option value="Pastries">Pastries</option>
-                        <option value="Extras">Extras</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label style={labelStyle}>Price (PHP)</label>
-                      <input type="number" step="0.01" value={productPrice} onChange={e => setProductPrice(e.target.value)} placeholder="150.00" style={inputStyle} />
-                    </div>
+                    <div><label style={labelStyle}>Category</label><select value={productCategory} onChange={e => setProductCategory(e.target.value)} style={inputStyle}><option value="Classics">Classics</option><option value="Signatures">Signatures</option><option value="Non-Coffee">Non-Coffee</option><option value="Desserts">Desserts</option><option value="Pastries">Pastries</option><option value="Extras">Extras</option></select></div>
+                    <div><label style={labelStyle}>Price (PHP)</label><input type="number" step="0.01" value={productPrice} onChange={e => setProductPrice(e.target.value)} placeholder="150.00" style={inputStyle} /></div>
                   </div>
-
                   <div style={{ borderTop: '1px solid #D3C9BE', paddingTop: 10, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <label style={{ ...labelStyle, marginBottom: 0 }}>Recipe Ingredients</label>
-                      <button type="button" onClick={handleAddIngredientRow} style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#D1915F', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}>
-                        <Plus style={{ width: 12, height: 14 }} /> Add
-                      </button>
+                      <button type="button" onClick={handleAddIngredientRow} style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#D1915F', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}><Plus style={{ width: 12, height: 14 }} /> Add</button>
                     </div>
-
                     <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: 180, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 2 }}>
                       {selectedRecipes.map((row, idx) => (
                         <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 4, alignItems: 'center', background: '#FFF', padding: 6, borderRadius: 8, border: '1px solid #D3C9BE' }}>
                           <select value={row.ingredient_id} onChange={e => handleUpdateRecipeRow(idx, { ingredient_id: parseInt(e.target.value) })} style={{ ...inputStyle, padding: '4px', fontSize: 12 }}>
-                            {ingredients.map(ing => (
-                              <option key={ing.ingredient_id} value={ing.ingredient_id}>{ing.ingredient_name}</option>
-                            ))}
+                            {ingredients.map(ing => <option key={ing.ingredient_id} value={ing.ingredient_id}>{ing.ingredient_name}</option>)}
                           </select>
-                          <input 
-                            type="number" 
-                            step="0.1" 
-                            value={Number.isNaN(row.standard_quantity) ? '' : row.standard_quantity} 
-                            onChange={e => {
-                              const val = parseFloat(e.target.value);
-                              handleUpdateRecipeRow(idx, { standard_quantity: Number.isNaN(val) ? NaN : val });
-                            }} 
-                            style={{ ...inputStyle, padding: '4px', fontSize: 12 }} 
-                          />
+                          <input type="number" step="0.1" value={Number.isNaN(row.standard_quantity) ? '' : row.standard_quantity} onChange={e => { const val = parseFloat(e.target.value); handleUpdateRecipeRow(idx, { standard_quantity: Number.isNaN(val) ? NaN : val }); }} style={{ ...inputStyle, padding: '4px', fontSize: 12 }} />
                           <span style={{ fontSize: 12, fontWeight: 600, color: '#8A7E72', textAlign: 'center' }}>{row.standard_measurement_unit}</span>
-                          <button type="button" onClick={() => handleRemoveRecipeRow(idx)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', padding: 2 }}>
-                            <Trash2 style={{ width: 14, height: 14 }} />
-                          </button>
+                          <button type="button" onClick={() => handleRemoveRecipeRow(idx)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', padding: 2 }}><Trash2 style={{ width: 14, height: 14 }} /></button>
                         </div>
                       ))}
                     </div>
                   </div>
-
-                  <button type="submit" disabled={isSubmitting} style={{ ...submitBtnStyle, background: isSubmitting ? '#B0A89E' : actionView === 'edit' ? '#D1915F' : '#09AA29' }}>
-                    {isSubmitting ? 'SAVING CHANGES...' : actionView === 'edit' ? 'CONFIRM AND UPDATE' : 'CONFIRM AND PUBLISH'}
-                  </button>
+                  <button type="submit" disabled={isSubmitting} style={{ ...submitBtnStyle, background: isSubmitting ? '#B0A89E' : actionView === 'edit' ? '#D1915F' : '#09AA29' }}>{isSubmitting ? 'SAVING CHANGES...' : actionView === 'edit' ? 'CONFIRM AND UPDATE' : 'CONFIRM AND PUBLISH'}</button>
                 </form>
               </div>
             ) : isAdmin ? (
               <div style={{ background: '#F9F8F6', border: '1px solid #D1915F', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
                 <h2 style={{ fontSize: 20, fontWeight: 800, color: '#D1915F', margin: '0 0 8px 0', textTransform: 'uppercase', textAlign: 'center' }}>Actions</h2>
-                <button onClick={() => setActionView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
-                  <div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="Add" style={{ width: 24, height: 24 }} /></div>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>ADD</span>
-                </button>
-                <button onClick={() => setActionView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
-                  <div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={editIcon} alt="Edit" style={{ width: 24, height: 24 }} /></div>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>EDIT</span>
-                </button>
-                <button onClick={() => setActionView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', transition: 'transform 0.1s ease' }}>
-                  <div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="Delete" style={{ width: 24, height: 24 }} /></div>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span>
-                </button>
+                <button onClick={() => setActionView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer' }}><div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="Add" style={{ width: 24, height: 24 }} /></div><span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>ADD</span></button>
+                <button onClick={() => setActionView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer' }}><div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={editIcon} alt="Edit" style={{ width: 24, height: 24 }} /></div><span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>EDIT</span></button>
+                <button onClick={() => setActionView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer' }}><div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="Delete" style={{ width: 24, height: 24 }} /></div><span style={{ fontSize: 20, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span></button>
               </div>
             ) : (
               <div style={{ flexGrow: 1, height: '100%' }}>{children}</div>
@@ -352,82 +342,93 @@ export default function PosTerminalUI({
         </main>
       )}
 
-      {/* Placeholders for other Top Nav Tabs */}
       {activeTab === 'TRANSACTIONS' && (
         <main style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F1F1', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24 }}>
           <h2 style={{ color: '#8A7E72' }}>Transactions Module Pending...</h2>
         </main>
       )}
       
-      {/* ====================[ RECENT ACTIVITY TAB ]==================== */}
       {activeTab === 'RECENT ACTIVITY' && (
-        <main style={{ 
-          flexGrow: 1, 
-          background: '#FFFFFF', 
-          borderRadius: 12, 
-          border: '1px solid #D3D3D3', 
-          marginBottom: 24, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          overflow: 'hidden',
-          boxShadow: '0 4px 40px rgba(0,0,0,0.02)'
-        }}>
-          
-          {/* TITLE BAR */}
-          <div style={{ background: '#F1F1F1', padding: '12px 20px', borderBottom: '1px solid #E5E5E5' }}>
-            <h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase' }}>
-              RECENT ACTIVITY
-            </h2>
+        <main style={{ flexGrow: 1, background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 40px rgba(0,0,0,0.02)' }}>
+          <div style={{ background: '#F1F1F1', padding: '12px 20px', borderBottom: '1px solid #E5E5E5' }}><h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase' }}>RECENT ACTIVITY</h2></div>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', padding: '12px 20px', background: '#F9F8F6', borderBottom: '1px solid #E5E5E5', fontSize: 12, fontWeight: 600, color: '#A39BA6' }}>
+            <span style={{ textAlign: 'center' }}>User ID</span><span style={{ textAlign: 'center' }}>Log ID</span><span>Activity</span><span>Target</span><span style={{ textAlign: 'right' }}>Timestamp</span>
           </div>
-
-          {/* TABLE HEADERS */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
-            padding: '12px 20px', 
-            background: '#F9F8F6', 
-            borderBottom: '1px solid #E5E5E5', 
-            fontSize: 12, 
-            fontWeight: 600, 
-            color: '#A39BA6' 
-          }}>
-            <span style={{ textAlign: 'center' }}>User ID</span>
-            <span style={{ textAlign: 'center' }}>Log ID</span>
-            <span>Activity</span>
-            <span>Target</span>
-            <span style={{ textAlign: 'right' }}>Timestamp</span>
-          </div>
-
-          {/* TABLE BODY */}
           <div style={{ flexGrow: 1, overflowY: 'auto' }}>
-            {safeActivityLogs.map((log) => (
-              <div key={log.log_id} style={{ 
-                display: 'grid', 
-                gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
-                padding: '16px 20px', 
-                borderBottom: '1px solid #F9F8F6',
-                fontSize: 13,
-                color: '#1E1E1E',
-                alignItems: 'center'
-              }}>
-                <span style={{ textAlign: 'center' }}>{log.user_id}</span>
-                <span style={{ textAlign: 'center' }}>{log.log_id}</span>
-                <span>{log.activity}</span>
-                <span>{log.target}</span>
-                <span style={{ textAlign: 'right' }}> {new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')} </span>
-              </div>
-            ))}
-            
-            {safeActivityLogs.length === 0 && (
-              <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>
-                No recent activity logs found.
-              </div>
-            )}
+            {safeActivityLogs.map((log, idx) => {
+              const rowKey = log.log_id ?? `fallback-log-${idx}`;
+              return (
+                <div key={rowKey} style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', padding: '16px 20px', borderBottom: '1px solid #F9F8F6', fontSize: 13, color: '#1E1E1E', alignItems: 'center' }}>
+                  <span style={{ textAlign: 'center' }}>{log.user_id}</span><span style={{ textAlign: 'center' }}>{log.log_id ?? '--'}</span><span>{log.activity}</span><span>{log.target}</span><span style={{ textAlign: 'right' }}> {new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')} </span>
+                </div>
+              );
+            })}
+            {safeActivityLogs.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>No recent activity logs found.</div>}
           </div>
         </main>
       )}
 
-      {/* FOOTER */}
+      {/* ====================[ PRODUCT REQUEST TAB ]==================== */}
+      {activeTab === 'PRODUCT REQUEST' && (
+        <main style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, flexGrow: 1, alignItems: 'start', marginBottom: 24 }}>
+          <section style={{ border: '1px solid #D3D3D3', borderRadius: 12, background: '#FFFFFF', padding: 24, boxShadow: '0 4px 40px rgba(0,0,0,0.04)', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', minWidth: 0, height: '100%' }}>
+            <div style={{ paddingBottom: 16, borderBottom: '2px solid #F1F1F1', marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase', letterSpacing: 0.5 }}>Logged Ingredient Requests</h2>
+              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#8A7E72' }}>Reviewing system reconciliation data and operational queue logs.</p>
+            </div>
+
+            {/* FIXED TRACKING HEADERS */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '10px 16px', background: '#F9F8F6', borderRadius: '8px 8px 0 0', fontSize: 11, fontWeight: 700, color: '#A39BA6', textTransform: 'uppercase' }}>
+              <span>Req No.</span><span>Requested By</span><span>Item</span><span>Quantity Change</span><span style={{ textAlign: 'center' }}>Status</span>
+            </div>
+
+            <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: 440, maxWidth: '100%', border: '1px solid #F1F1F1', borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
+              {localAdjustmentRequests && localAdjustmentRequests.length > 0 ? (
+                localAdjustmentRequests.map((req, idx) => {
+                  const rowKey = req.id !== null && req.id !== undefined ? req.id : `fallback-key-${idx}`;
+                  const statusLower = req.status?.toLowerCase() || 'pending';
+                  const isPending = statusLower === 'pending';
+                  const isRejected = statusLower === 'rejected';
+                  const badgeBg = isPending ? '#FEF3C7' : isRejected ? '#FEE2E2' : '#DCFCE7';
+                  const badgeText = isPending ? '#D97706' : isRejected ? '#DC2626' : '#15803D';
+
+                  return (
+                    <div key={rowKey} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '14px 16px', borderBottom: '1px solid #F1F1F1', fontSize: 13, color: '#1E1E1E', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600, color: '#8A7E72' }}>#{req.id ?? '--'}</span>
+                      <span style={{ textTransform: 'capitalize' }}>{req.username || 'System'}</span>
+                      <span style={{ fontWeight: 700 }}>{req.ingredient_name || `ID: ${req.ingredient_id}`}</span>
+                      <span style={{ color: req.quantity < 0 ? '#FF2C2C' : '#09AA29', fontWeight: 600 }}>{req.quantity > 0 ? `+${req.quantity}` : req.quantity}</span>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', background: badgeBg, color: badgeText }}>{req.status || 'Pending'}</span>
+                      </div>
+                    </div>
+                  );
+                })
+              ) : (
+                <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 13 }}>No recorded adjustment logs in session view.</div>
+              )}
+            </div>
+          </section>
+
+          <aside style={{ display: 'flex', flexDirection: 'column', width: '320px', minWidth: '320px', boxSizing: 'border-box' }}>
+            {userRole === 'admin' ? (
+              <AdjustmentRequestReviewPanel
+                requests={localAdjustmentRequests}
+                userId={activeUserId}
+                onReviewed={fetchAdjustmentRequests}
+              />
+            ) : (
+              <IngredientAdjustmentForm 
+                ingredients={ingredients} 
+                userId={activeUserId} 
+                onSuccess={handleNewRequestLogged} 
+              /> 
+            )}
+          </aside>
+        </main>
+      )}
+
+      {/* FOOTER NAV */}
       <nav style={{ background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf', width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE' }}>
         {[
           { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
