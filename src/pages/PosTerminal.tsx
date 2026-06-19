@@ -26,6 +26,7 @@ export default function PosTerminal() {
   const [deleteError, setDeleteError] = useState<string>('');
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
+const [activityFilter, setActivityFilter] = useState<string>('ALL');
 
   const handleProductClick = (product: Product) => {
     if (actionView === 'delete') {
@@ -157,6 +158,8 @@ export default function PosTerminal() {
                   setActionView={setActionView}
                   activityLogs={logs} 
                   refetchActivityLogs={refetchLogs}
+                  activityFilter={activityFilter}
+                  setActivityFilter={setActivityFilter}
                   
                   // Form Fields state selections
                   productName={isEditingItem ? editProps.productName : addProps.productName}

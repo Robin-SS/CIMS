@@ -45,6 +45,8 @@ interface PosTerminalUIProps {
   onProductClick: (product: Product) => void;
   activityLogs?: ActivityLog[]; 
   refetchActivityLogs?: () => void;
+  activityFilter?: string; 
+  setActivityFilter?: (filter: string) => void; 
   children?: React.ReactNode;
 
   selectedDeleteIds?: number[];
@@ -84,6 +86,8 @@ export default function PosTerminalUI({
   setSelectedDeleteIds,
   userId,
   username,
+  activityFilter,
+  setActivityFilter,
 }: PosTerminalUIProps) {
   
   const navigate = useNavigate();
@@ -202,6 +206,11 @@ export default function PosTerminalUI({
       setSelectedDeleteIds(prev => prev.filter(item => item !== id));
     }
   };
+
+  const safeLogs = activityLogs || [];
+  const filteredLogs = activityFilter === 'ALL' 
+    ? safeLogs 
+    : safeLogs.filter(log => log.target === activityFilter);
 
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif", padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
@@ -348,22 +357,87 @@ export default function PosTerminalUI({
         </main>
       )}
       
+      {/* ====================[ RECENT ACTIVITY TAB ]==================== */}
       {activeTab === 'RECENT ACTIVITY' && (
-        <main style={{ flexGrow: 1, background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24, display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 4px 40px rgba(0,0,0,0.02)' }}>
-          <div style={{ background: '#F1F1F1', padding: '12px 20px', borderBottom: '1px solid #E5E5E5' }}><h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase' }}>RECENT ACTIVITY</h2></div>
-          <div style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', padding: '12px 20px', background: '#F9F8F6', borderBottom: '1px solid #E5E5E5', fontSize: 12, fontWeight: 600, color: '#A39BA6' }}>
-            <span style={{ textAlign: 'center' }}>User ID</span><span style={{ textAlign: 'center' }}>Log ID</span><span>Activity</span><span>Target</span><span style={{ textAlign: 'right' }}>Timestamp</span>
+        <main style={{ 
+          flexGrow: 1, 
+          background: '#FFFFFF', 
+          borderRadius: 12, 
+          border: '1px solid #D3D3D3', 
+          marginBottom: 24, 
+          display: 'flex', 
+          flexDirection: 'column', 
+          overflow: 'hidden',
+          boxShadow: '0 4px 40px rgba(0,0,0,0.02)'
+        }}>
+          
+          {/* TITLE BAR WITH FILTER DROPDOWN */}
+          <div style={{ background: '#F1F1F1', padding: '12px 20px', borderBottom: '1px solid #E5E5E5', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase' }}>
+              RECENT ACTIVITY
+            </h2>
+            
+            {/* 🌟 The Dropdown Filter */}
+            {setActivityFilter && (
+              <select 
+                value={activityFilter} 
+                onChange={(e) => setActivityFilter(e.target.value)}
+                style={{
+                  padding: '6px 12px', borderRadius: 8, border: '1px solid #D3C9BE',
+                  fontSize: 12, fontWeight: 600, color: '#1E1E1E', cursor: 'pointer', outline: 'none'
+                }}
+              >
+                <option value="ALL">All Activities</option>
+                <option value="Transactions">Transactions</option>
+                <option value="User Authentication">Logins / Auth</option>
+                <option value="products">Products</option>
+                <option value="Inventory">Inventory</option>
+              </select>
+            )}
           </div>
+
+          {/* TABLE HEADERS */}
+          <div style={{ 
+            display: 'grid', 
+            gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
+            padding: '12px 20px', 
+            background: '#F9F8F6', 
+            borderBottom: '1px solid #E5E5E5', 
+            fontSize: 12, 
+            fontWeight: 600, 
+            color: '#A39BA6' 
+          }}>
+            <span style={{ textAlign: 'center' }}>User ID</span>
+            <span style={{ textAlign: 'center' }}>Log ID</span>
+            <span>Activity</span>
+            <span>Target</span>
+            <span style={{ textAlign: 'right' }}>Timestamp</span>
+          </div>
+
+          {/* TABLE BODY */}
           <div style={{ flexGrow: 1, overflowY: 'auto' }}>
-            {safeActivityLogs.map((log, idx) => {
-              const rowKey = log.log_id ?? `fallback-log-${idx}`;
-              return (
-                <div key={rowKey} style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', padding: '16px 20px', borderBottom: '1px solid #F9F8F6', fontSize: 13, color: '#1E1E1E', alignItems: 'center' }}>
-                  <span style={{ textAlign: 'center' }}>{log.user_id}</span><span style={{ textAlign: 'center' }}>{log.log_id ?? '--'}</span><span>{log.activity}</span><span>{log.target}</span><span style={{ textAlign: 'right' }}> {new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')} </span>
-                </div>
-              );
-            })}
-            {safeActivityLogs.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>No recent activity logs found.</div>}
+            {/* 🌟 CRITICAL: Map over filteredLogs instead of activityLogs! */}
+            {filteredLogs.map((log, index) => (
+              <div key={index} style={{ 
+                display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
+                padding: '16px 20px', borderBottom: '1px solid #F9F8F6',
+                fontSize: 13, color: '#1E1E1E', alignItems: 'center'
+              }}>
+                <span style={{ textAlign: 'center' }}>{log.user_id}</span>
+                <span style={{ textAlign: 'center' }}>{log.log_id || '--'}</span>
+                <span>{log.activity}</span>
+                <span>{log.target}</span>
+                <span style={{ textAlign: 'right' }}>
+                  {new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')}
+                </span>
+              </div>
+            ))}
+            
+            {filteredLogs.length === 0 && (
+              <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>
+                No recent activity logs found for this filter.
+              </div>
+            )}
           </div>
         </main>
       )}
