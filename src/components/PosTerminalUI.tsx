@@ -226,7 +226,7 @@ export default function PosTerminalUI({
         </div>
 
         <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '1px solid #D3C9BE' }}>
-          {['POINT OF SALES', 'TRANSACTIONS', 'RECENT ACTIVITY', 'PRODUCT REQUEST'].map((tab) => (
+          {['POINT OF SALES', 'RECENT ACTIVITY', 'PRODUCT REQUEST'].map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: 24, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, letterSpacing: 0.5, transition: 'all 0.2s', backgroundColor: activeTab === tab ? '#F1F1F1' : 'transparent', color: activeTab === tab ? '#1E1E1E' : '#8A7E72' }}>
               {tab}
             </button>
@@ -351,11 +351,6 @@ export default function PosTerminalUI({
         </main>
       )}
 
-      {activeTab === 'TRANSACTIONS' && (
-        <main style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#F1F1F1', borderRadius: 12, border: '1px solid #D3D3D3', marginBottom: 24 }}>
-          <h2 style={{ color: '#8A7E72' }}>Transactions Module Pending...</h2>
-        </main>
-      )}
       
       {/* ====================[ RECENT ACTIVITY TAB ]==================== */}
       {activeTab === 'RECENT ACTIVITY' && (
