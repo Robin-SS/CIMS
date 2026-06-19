@@ -372,7 +372,7 @@ export default function PosTerminalUI({
               RECENT ACTIVITY
             </h2>
             
-            {/* 🌟 The Dropdown Filter */}
+            {/* The Dropdown Filter */}
             {setActivityFilter && (
               <select 
                 value={activityFilter} 

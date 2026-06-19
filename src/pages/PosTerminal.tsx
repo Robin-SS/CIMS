@@ -7,6 +7,7 @@ import OrderSummary, { type OrderItem } from '../features/OrderSummary';
 import AddProductForm from '../features/AddProductForm'; 
 import EditProductForm from '../features/EditProductForm'; 
 import type { Product } from '../types/Product';
+import { useInventory } from '../context/InventoryContext'; 
 
 export default function PosTerminal() {
   const { user } = useAuth();
@@ -26,7 +27,8 @@ export default function PosTerminal() {
   const [deleteError, setDeleteError] = useState<string>('');
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
-const [activityFilter, setActivityFilter] = useState<string>('ALL');
+  const [activityFilter, setActivityFilter] = useState<string>('ALL');
+  const { refreshInventory } = useInventory();
 
   const handleProductClick = (product: Product) => {
     if (actionView === 'delete') {
@@ -108,7 +110,9 @@ const [activityFilter, setActivityFilter] = useState<string>('ALL');
     setOrderItems([]);
     setIsPaymentModalOpen(false);
     refetchLogs();
-    
+
+    await refreshInventory();
+
     alert(`Order processed successfully using ${paymentMethod}!`);
   };
 

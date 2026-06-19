@@ -13,7 +13,7 @@ interface IngredientAdjustmentFormProps {
   ingredients: Ingredient[];
   userId?: string | number; 
   onSuccess?: (insertedRequest: any) => void; 
-  onCancel?: () => void; //
+  onCancel?: () => void; 
 }
 
 export default function IngredientAdjustmentForm({ ingredients, userId, onSuccess, onCancel }: IngredientAdjustmentFormProps) {
@@ -35,26 +35,26 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Step 1: Frontend intercepts the form and requires a validation review
   const handlePreSubmitValidation = (e: FormEvent) => {
     e.preventDefault();
     if (!formData.ingredient_id || !formData.quantity || !formData.reason.trim()) {
       alert("Please populate all required fields.");
       return;
     }
-    // Shows confirmation screen instead of immediately hitting database
     setShowConfirmation(true); 
   };
 
-  // Step 2: User confirms everything is correct, send data to Supabase
   const handleFinalSubmit = async () => {
     setIsSubmitting(true);
     setStatus('idle');
-    setShowConfirmation(false); // Hide overlay confirmation panel
+    setShowConfirmation(false); 
 
     const qty = parseInt(formData.quantity, 10);
     const ingredientId = parseInt(formData.ingredient_id, 10);
     const cleanUserId = userId ? (typeof userId === 'number' ? userId : parseInt(String(userId), 10)) : null;
+
+    // Find ingredient name beforehand for the activity description log
+    const ingredientName = ingredients.find(i => i.ingredient_id === ingredientId)?.ingredient_name || `Ingredient #${ingredientId}`;
 
     try {
       const { data, error } = await supabase
@@ -73,6 +73,15 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
 
       if (error) throw error;
 
+      // 🌟 1. INSERTED TRIGGER FOR AUDIT LOGGING HERE 🌟
+      if (cleanUserId) {
+        await ActivityService.logAction(
+          cleanUserId,
+          `Requested stock adjustment for ${qty > 0 ? `+${qty}` : qty} ${ingredientName}`,
+          'Inventory'
+        );
+      }
+
       setStatus('success');
       setFormData({ ingredient_id: '', quantity: '', reason: '' });
 
@@ -86,11 +95,10 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
     }
   };
 
-  // Clear data back to empty defaults
   const handleClearForm = () => {
     setFormData({ ingredient_id: '', quantity: '', reason: '' });
     setStatus('idle');
-    if (onCancel) onCancel(); // Fire parent route exit event if provided
+    if (onCancel) onCancel(); 
   };
 
   const selectedIngredientName = ingredients.find(
@@ -100,7 +108,7 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
   return (
     <div style={{ position: 'relative', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 16, padding: 20, boxShadow: '0 10px 30px rgba(0,0,0,0.02)', fontFamily: "'Inter', sans-serif" }}>
       
-      {/* ===================[ VALIDATION CONFIRMATION DIALOG MODAL ]=================== */}
+      {/* VALIDATION CONFIRMATION DIALOG MODAL */}
       {showConfirmation && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 24, zIndex: 10, backdropFilter: 'blur(1px)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D1915F', marginBottom: 12 }}>
@@ -131,7 +139,7 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
         </div>
       )}
 
-      {/* --- STANDARD ENTRY HEADER --- */}
+      {/* STANDARD ENTRY HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <ClipboardList style={{ color: '#D1915F' }} size={20} />
         <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1E1E1E', letterSpacing: 0.5 }}>
@@ -176,9 +184,7 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
           </div>
         )}
 
-        {/* ===================[ FORM BUTTON ACTION ACTIONS BAR ]=================== */}
         <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-          {/* Cancel/Clear Button */}
           <button 
             type="button" 
             disabled={isSubmitting} 
@@ -188,7 +194,6 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
             Cancel
           </button>
           
-          {/* Submit Action Trigger Button */}
           <button 
             type="submit" 
             disabled={isSubmitting} 

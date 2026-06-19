@@ -1,60 +1,33 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import type { Ingredient} from '../types/InventoryItem';
+import type { Ingredient } from '../types/InventoryItem';
 import { InventoryService, type NewIngredient } from '../services/InventoryService';
 
 
-/**
- * Defines the blueprint for your global state, outlining the variables (ingredients) 
- * and functions (addIngredient, etc.) that will be accessible to your app.
- */
 interface InventoryContextType {
-
   ingredients: Ingredient[];
-
   fetchIngredients: () => Promise<void>;
-
-  addIngredient: (
-    ingredient: NewIngredient
-  ) => Promise<boolean>;
-
-  updateIngredient: (
-    ingredientId: number,
-    ingredient: Partial<Ingredient>
-  ) => Promise<boolean>;
-
-  deleteIngredient: (
-    ingredientId: number
-  ) => Promise<boolean>;
+  addIngredient: (ingredient: NewIngredient) => Promise<boolean>;
+  updateIngredient: (ingredientId: number, ingredient: Partial<Ingredient>) => Promise<boolean>;
+  deleteIngredient: (ingredientId: number) => Promise<boolean>;
+  refreshInventory: () => Promise<void>; 
 }
 
-//Initializes the empty context bucket that React will use to hold the data.
-const InventoryContext =
-  createContext<
-    InventoryContextType | undefined
-  >(undefined);
+// Initializes the empty context bucket that React will use to hold the data.
+const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
-  // This is a wrapper component. Any components placed inside it (children) will have access to the inventory data.
-export function InventoryProvider({
-  children
-}: {
-  children: ReactNode;
-}) {
+// This is a wrapper component. Any components placed inside it (children) will have access to the inventory data.
+export function InventoryProvider({ children }: { children: ReactNode }) {
 
   // Creates the active state variable that holds the list of ingredients currently loaded in the app.
-  const [ingredients, setIngredients] =
-    useState<Ingredient[]>([]);
+  const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
-  /**
-   * React hook that automatically tells the app to fetch the ingredient list from the
-   * database the very first time this provider loads.
-   */
+
   useEffect(() => {
     fetchIngredients();
   }, []);
 
   async function fetchIngredients() {
-
-    const {data, error } = await InventoryService.getAllIngredients();
+    const { data, error } = await InventoryService.getAllIngredients();
 
     if (error) {
       console.error(error);
@@ -64,10 +37,7 @@ export function InventoryProvider({
     setIngredients(data || []);
   }
 
-  async function addIngredient(
-    ingredient: NewIngredient
-  ) {
-
+  async function addIngredient(ingredient: NewIngredient) {
     const { error } = await InventoryService.addIngredient(ingredient);
 
     if (error) {
@@ -76,21 +46,11 @@ export function InventoryProvider({
     }
 
     await fetchIngredients();
-
     return true;
   }
 
-  async function updateIngredient(
-    ingredientId: number,
-    ingredient: Partial<Ingredient>
-  ) {
-
-    const { error } =
-      await InventoryService
-        .updateIngredient(
-          ingredientId,
-          ingredient
-        );
+  async function updateIngredient(ingredientId: number, ingredient: Partial<Ingredient>) {
+    const { error } = await InventoryService.updateIngredient(ingredientId, ingredient);
 
     if (error) {
       console.error(error);
@@ -98,19 +58,11 @@ export function InventoryProvider({
     }
 
     await fetchIngredients();
-
     return true;
   }
 
-  async function deleteIngredient(
-    ingredientId: number
-  ) {
-
-    const { error } =
-      await InventoryService
-        .deleteIngredient(
-          ingredientId
-        );
+  async function deleteIngredient(ingredientId: number) {
+    const { error } = await InventoryService.deleteIngredient(ingredientId);
 
     if (error) {
       console.error(error);
@@ -118,7 +70,6 @@ export function InventoryProvider({
     }
 
     await fetchIngredients();
-
     return true;
   }
 
@@ -127,14 +78,11 @@ export function InventoryProvider({
     <InventoryContext.Provider
       value={{
         ingredients,
-
         fetchIngredients,
-
         addIngredient,
-
         updateIngredient,
-
-        deleteIngredient
+        deleteIngredient,
+        refreshInventory: fetchIngredients 
       }}
     >
       {children}
@@ -143,14 +91,10 @@ export function InventoryProvider({
 }
 
 export function useInventory() {
-
-  const context =
-    useContext(InventoryContext);
+  const context = useContext(InventoryContext);
 
   if (!context) {
-    throw new Error(
-      'useInventory must be used within InventoryProvider'
-    );
+    throw new Error('useInventory must be used within InventoryProvider');
   }
 
   return context;
