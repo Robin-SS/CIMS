@@ -77,20 +77,32 @@ export default function AdjustmentRequestReviewPanel({ requests, userId, onRevie
     }
   };
 
-  return (
-    <div style={{ width: '100%', boxSizing: 'border-box', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 16, padding: '20px', boxShadow: '0 10px 30px rgba(209, 145, 95, 0.05)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
-        <ClipboardCheck style={{ color: '#D1915F', width: 22, height: 22 }} />
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1E1E1E', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-          Review Requests
-        </h2>
-      </div>
-      <p style={{ margin: '0 0 20px 0', fontSize: 12, color: '#8A7E72', lineHeight: 1.4 }}>
-        Approve or reject pending inventory adjustment requests.
-      </p>
+return (
+  <div style={{ 
+    width: '100%', 
+    height: '100%',                 // 👈 Forces sidebar box to stretch full height
+    boxSizing: 'border-box', 
+    background: '#FFFFFF', 
+    border: '2px solid #f2d8c3', 
+    borderRadius: 16, 
+    padding: '20px',
+    display: 'flex',                // 👈 Use flex layout to manage inner elements
+    flexDirection: 'column'
+  }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
+      <ClipboardCheck style={{ color: '#D1915F', width: 22, height: 22 }} />
+      <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+        Review Requests
+      </h2>
+    </div>
+    <p style={{ margin: '0 0 20px 0', fontSize: 12, color: '#8A7E72', lineHeight: 1.4 }}>
+      Approve or reject pending inventory adjustment requests.
+    </p>
 
+    {/* 🛠️ Scrollable content wrapper that expands to fill the panel height */}
+    <div style={{ flexGrow: 1, overflowY: 'auto', paddingRight: 4 }}>
       {pendingRequests.length === 0 ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 13 }}>
+        <div style={{ padding: '24px 0', textAlign: 'center', color: '#8A7E72', fontStyle: 'italic', fontSize: 13 }}>
           No pending requests to review.
         </div>
       ) : (
@@ -98,7 +110,7 @@ export default function AdjustmentRequestReviewPanel({ requests, userId, onRevie
           {pendingRequests.map((req) => {
             const isProcessing = processingId === req.id;
             return (
-              <div key={req.id} style={{ border: '1px solid #F1F1F1', borderRadius: 12, padding: 14 }}>
+              <div key={req.id} style={{ border: '1px solid #F1F1F1', borderRadius: 12, padding: 14, background: '#FFFFFF' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
                   <span style={{ fontWeight: 700, fontSize: 13, color: '#1E1E1E' }}>{req.ingredient_name}</span>
                   <span style={{ fontSize: 11, color: '#8A7E72' }}>#{req.id}</span>
@@ -139,5 +151,6 @@ export default function AdjustmentRequestReviewPanel({ requests, userId, onRevie
         </div>
       )}
     </div>
-  );
+  </div>
+);
 }

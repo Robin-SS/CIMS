@@ -18,13 +18,18 @@ export default function OrderSummary({ orderItems, onUpdateQuantity, onCheckout 
   const tax = totalAmount * 0.12; // 12% Tax
   const grandTotal = totalAmount + tax;
 
-  return (
-    <div style={{
-      display: 'flex', flexDirection: 'column', 
-      height: 'calc(100vh - 170px)', /* 🌟 Strict height so it perfectly fills the right side */
-      background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3C9BE',
-      overflow: 'hidden', fontFamily: "'Inter', sans-serif"
-    }}>
+    return (
+      <div style={{
+        display: 'flex', 
+        flexDirection: 'column', 
+        flexGrow: 1,          
+        height: '100%',        
+        background: '#FFFFFF', 
+        borderRadius: 12, 
+        border: '2px solid #f2d8c3',
+        overflow: 'hidden', 
+        fontFamily: "'Inter', sans-serif"
+      }}>
       
       {/* 🌟 Custom Scrollbar Styling for this component 🌟 */}
       <style>{`
@@ -45,19 +50,12 @@ export default function OrderSummary({ orderItems, onUpdateQuantity, onCheckout 
       `}</style>
 
       {/* HEADER */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '1px solid #F1F1F1' }}>
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1E1E1E' }}>ORDER SUMMARY</h2>
-        <button style={{
-          display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-          borderRadius: 20, border: '1px solid #D1915F', background: '#FFF5EB',
-          color: '#D1915F', fontWeight: 700, fontSize: 11, cursor: 'pointer'
-        }}>
-          <span>📄</span> TRANSACTIONS
-        </button>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px', borderBottom: '2px solid #f2d8c3' }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F' }}>ORDER SUMMARY</h2>
       </div>
 
       {/* TABLE HEADERS */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', padding: '10px 20px', background: '#F9F8F6', borderBottom: '1px solid #F1F1F1', fontSize: 11, fontWeight: 600, color: '#A39BA6' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 80px', padding: '10px 20px', background: '#FFFFFF', borderBottom: '2px solid #f2d8c3', fontSize: 11, fontWeight: 600, color: '#D1915F' }}>
         <span>Menu Item</span>
         <span style={{ textAlign: 'right' }}>Amount</span>
         <span style={{ textAlign: 'center' }}>Qty</span>
@@ -127,17 +125,14 @@ export default function OrderSummary({ orderItems, onUpdateQuantity, onCheckout 
           <span>Discount</span>
           <span style={{ fontWeight: 600, color: '#1E1E1E' }}>Php 0.00</span>
         </div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingTop: 8, borderTop: '1px dashed #D3D3D3', fontSize: 14, fontWeight: 800, color: '#1E1E1E' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, paddingTop: 8, borderTop: '2px solid #f2d8c3', fontSize: 14, fontWeight: 800, color: '#1E1E1E' }}>
           <span>Grand Total Amount</span>
           <span>Php {grandTotal.toFixed(2)}</span>
         </div>
       </div>
 
       {/* FOOTER CONTROLS */}
-      <div style={{ display: 'flex', alignItems: 'center', background: '#F9F8F6', padding: '12px', borderTop: '1px solid #D3C9BE' }}>
-        <span style={{ flexGrow: 1, fontSize: 12, fontWeight: 600, color: '#A39BA6', textAlign: 'center', cursor: 'pointer' }}>
-          Add Promo/Voucher
-        </span>
+      <div style={{ display: 'flex', alignItems: 'center', background: '#F9F8F6', padding: '12px', borderTop: '2px solid #f2d8c3' }}>
         <button 
          onClick={onCheckout} 
           disabled={orderItems.length === 0} 
@@ -146,7 +141,7 @@ export default function OrderSummary({ orderItems, onUpdateQuantity, onCheckout 
             color: '#FFFFFF', 
             border: 'none', 
             borderRadius: 8,
-            padding: '14px 16px', 
+            padding: '14px 62.5px', 
             fontSize: 12, 
             fontWeight: 800, 
             textTransform: 'uppercase', 

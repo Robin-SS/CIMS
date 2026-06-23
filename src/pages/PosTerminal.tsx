@@ -208,37 +208,47 @@ export default function PosTerminal() {
                 {isPaymentModalOpen && (
                   <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
                     <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 400, display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif" }}>
-                      <h2 style={{ margin: 0, color: '#1E1E1E', fontSize: 20, fontWeight: 800, textAlign: 'center', letterSpacing: -0.5 }}>SELECT PAYMENT METHOD</h2>
+                      <h2 style={{ margin: 0, color: '#D1915F', fontSize: 20, fontWeight: 800, textAlign: 'center', letterSpacing: -0.5 }}>SELECT PAYMENT METHOD</h2>
                       
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                         <button 
                           onClick={() => handleConfirmPayment('Cash')}
-                          style={{ padding: '20px 16px', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#FFF5EB'; e.currentTarget.style.borderColor = '#D1915F'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#D3C9BE'; }}
+                          style={{ padding: '20px 16px', background: '#faebe0', border: '2px solid #f2d8c3', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#FFF5EB'; e.currentTarget.style.borderColor = '#f2d8c3'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#f2d8c3'; }}
                         >
                           <span style={{ fontSize: 24 }}>💵</span>
                           <span>CASH</span>
                         </button>
                         <button 
                           onClick={() => handleConfirmPayment('Card/E-Wallet')}
-                          style={{ padding: '20px 16px', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
-                          onMouseEnter={e => { e.currentTarget.style.background = '#FFF5EB'; e.currentTarget.style.borderColor = '#D1915F'; }}
-                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#D3C9BE'; }}
+                          style={{ padding: '20px 16px', background: '#faebe0', border: '2px solid #f2d8c3', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15, transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}
+                          onMouseEnter={e => { e.currentTarget.style.background = '#FFF5EB'; e.currentTarget.style.borderColor = '#f2d8c3'; }}
+                          onMouseLeave={e => { e.currentTarget.style.background = '#FFFFFF'; e.currentTarget.style.borderColor = '#f2d8c3'; }}
                         >
                           <span style={{ fontSize: 24 }}>💳</span>
                           <span>CARD</span>
                         </button>
                       </div>
-
-                      <button 
-                        onClick={() => setIsPaymentModalOpen(false)}
-                        style={{ padding: '8px 12px', background: 'transparent', border: 'none', color: '#A39BA6', fontWeight: 600, cursor: 'pointer', fontSize: 13, alignSelf: 'center', transition: 'color 0.2s' }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#1E1E1E'}
-                        onMouseLeave={e => e.currentTarget.style.color = '#A39BA6'}
-                      >
-                        Cancel Transaction
-                      </button>
+                  <button 
+                    onClick={() => setIsPaymentModalOpen(false)}
+                    style={{ 
+                      padding: '10px 16px', 
+                      background: '#faebe0',        
+                      border: '2px solid #f2d8c3', 
+                      color: '#D1915F',            
+                      fontWeight: 700, 
+                      borderRadius: '8px', 
+                      cursor: 'pointer', 
+                      fontSize: 13, 
+                      alignSelf: 'center', 
+                      transition: 'opacity 0.2s ease' 
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.85'} // Smooth response on hover
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  >
+                    Cancel Transaction
+                  </button>
                     </div>
                   </div>
                 )}

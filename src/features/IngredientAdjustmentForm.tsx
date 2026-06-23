@@ -105,9 +105,23 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
     i => i.ingredient_id === parseInt(formData.ingredient_id, 10)
   )?.ingredient_name || 'Selected Item';
 
-  return (
-    <div style={{ position: 'relative', background: '#FFFFFF', border: '1px solid #D3C9BE', borderRadius: 16, padding: 20, boxShadow: '0 10px 30px rgba(0,0,0,0.02)', fontFamily: "'Inter', sans-serif" }}>
-      
+    return (
+      <div style={{ 
+        position: 'relative', 
+        background: '#FFFFFF', 
+        border: '2px solid #f2d8c3', 
+        borderRadius: 16, 
+        padding: 20, 
+        boxShadow: '0 10px 30px rgba(0,0,0,0.02)', 
+        fontFamily: "'Inter', sans-serif",
+        
+        // 🛠️ Structural Alignment Additions
+        display: 'flex',          
+        flexDirection: 'column',
+        flexGrow: 1,               
+        height: '100%',          
+        boxSizing: 'border-box'
+      }}>
       {/* VALIDATION CONFIRMATION DIALOG MODAL */}
       {showConfirmation && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(255,255,255,0.96)', borderRadius: 16, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: 24, zIndex: 10, backdropFilter: 'blur(1px)' }}>
@@ -142,13 +156,12 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
       {/* STANDARD ENTRY HEADER */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
         <ClipboardList style={{ color: '#D1915F' }} size={20} />
-        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#1E1E1E', letterSpacing: 0.5 }}>
+        <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F', letterSpacing: 0.5 }}>
           STOCK ADJUSTMENT REQUEST
         </h2>
       </div>
 
-      <form onSubmit={handlePreSubmitValidation} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-        <div>
+      <form onSubmit={handlePreSubmitValidation} style={{ display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1}}>        <div>
           <label style={labelStyle}>Select Ingredient <span style={{ color: '#FF2C2C' }}>*</span></label>
           <select name="ingredient_id" required value={formData.ingredient_id} onChange={handleChange} style={inputStyle}>
             <option value="">-- Choose Item From Grid --</option>
@@ -163,7 +176,7 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
         <div>
           <label style={labelStyle}>Quantity Offset Delta <span style={{ color: '#FF2C2C' }}>*</span></label>
           <input type="number" name="quantity" required value={formData.quantity} onChange={handleChange} placeholder="e.g., -5 for spoilage, 10 for restock" style={inputStyle} />
-          <span style={{ fontSize: 10, color: '#8A7E72', display: 'block', marginTop: 4 }}>
+          <span style={{ fontSize: 12, color: '#8A7E72', display: 'block', marginTop: 4 }}>
             Use a negative number to subtract inventory stock, positive to request incremental additions.
           </span>
         </div>
@@ -184,12 +197,12 @@ export default function IngredientAdjustmentForm({ ingredients, userId, onSucces
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 'auto', paddingTop: 16 }}>
           <button 
             type="button" 
             disabled={isSubmitting} 
             onClick={handleClearForm}
-            style={{ flex: 1, padding: '12px 0', background: '#FFFFFF', color: '#8A7E72', fontWeight: 700, fontSize: 13, borderRadius: 12, border: '1px solid #D3C9BE', cursor: 'pointer', transition: 'all 0.2s' }}
+            style={{ flex: 1, padding: '12px 0', background: '#FFFFFF', color: '#D1915F', fontWeight: 700, fontSize: 13, borderRadius: 12, border: '2px solid #f2d8c3', cursor: 'pointer', transition: 'all 0.2s' }}
           >
             Cancel
           </button>
