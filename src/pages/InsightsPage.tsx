@@ -1,10 +1,34 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import InsightsPageUI from '../components/InsightsPageUI';
+import AnalyticsKpiCards from '../features/AnalyticsKpiCards';
+import { AnalyticsService } from '../services/AnalyticsService';
+import type { KPIAnalytics } from '../types/Analytics';
 
 export default function InsightsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('REPORTS & ANALYTICS');
+  
+  // 🌟 NEW: State for the KPI metrics
+  const [metrics, setMetrics] = useState<KPIAnalytics>({
+    totalWeightKg: 0,
+    mostConsumedItem: 'Calculating...',
+    lowStockCount: 0
+  });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // 🌟 NEW: Fetching logic on mount
+  useEffect(() => {
+    async function loadDashboardKPIs() {
+      setIsLoading(true);
+      const { data, error } = await AnalyticsService.getUsageMetrics();
+      if (!error && data) {
+        setMetrics(data);
+      }
+      setIsLoading(false);
+    }
+    loadDashboardKPIs();
+  }, []);
 
   return (
     <InsightsPageUI
@@ -14,22 +38,15 @@ export default function InsightsPage() {
       
       leftCardsSlot={
         activeTab === 'REPORTS & ANALYTICS' ? (
-          <>
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>TOTAL INGREDIENTS USED</span>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>MOST CONSUMED</span>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>LOW STOCK ITEMS</span>
-              <div style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-          </>
+          // 🌟 INJECTED THE NEW KPI FEATURE COMPONENT HERE
+          <AnalyticsKpiCards 
+            data={{
+              totalIngredientsKg: metrics.totalWeightKg,
+              mostConsumedText: metrics.mostConsumedItem,
+              lowStockItemsCount: metrics.lowStockCount
+            }}
+            isLoading={isLoading}
+          />
         ) : (
           <>
             <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
