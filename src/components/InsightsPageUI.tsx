@@ -52,14 +52,14 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
       </header>
 
       {/* MAIN WORKSPACE GRID */}
-      <main style={{ display: 'flex', gap: 24, flexGrow: 1, marginBottom: 24 }}>
+      <main style={{ display: 'flex', gap: 24, flexGrow: 1, marginBottom: 24, alignItems: 'stretch' }}>
         
-        {/* LEFT CARDS SLOT - Receives the AnalyticsKpiCards */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: 20, minWidth: 240 }}>
+        {/* LEFT CARDS SLOT - Updated to stretch full height */}
+        <aside style={{ display: 'flex', flexDirection: 'column', minWidth: 240, width: 240 }}>
           {leftCardsSlot}
         </aside>
 
-        {/* MAIN CONTENT SLOT - Receives the Restock List / Forecast */}
+        {/* MAIN CONTENT SLOT */}
         <section style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3C9BE', padding: 24, boxShadow: '0 4px 40px rgba(0,0,0,0.02)' }}>
           {mainContentSlot}
         </section>
