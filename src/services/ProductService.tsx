@@ -10,9 +10,17 @@ export interface SelectedIngredientRecipe {
 
 export const ProductService = {
   async getAllProducts() {
+    // UPDATED: Explicitly select relational mapping rows from the junction matrix
     const { data, error } = await supabase
       .from('products')
-      .select('*')
+      .select(`
+        *,
+        prod_ingredient (
+          ingredient_id,
+          standard_quantity,
+          standard_measurement_unit
+        )
+      `)
       .order('product_name', { ascending: true });
 
     if (error || !data) {

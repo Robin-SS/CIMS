@@ -50,8 +50,8 @@ interface InventoryPageUIProps {
   setFormStockDate: (v: string) => void;
   formExpiryDate: string;
   setFormExpiryDate: (v: string) => void;
-  hasExpiry: boolean;              // Added property input token mapping
-  setHasExpiry: (v: boolean) => void; // Added property input token mapping
+  hasExpiry: boolean;              
+  setHasExpiry: (v: boolean) => void; 
   onFormSubmit: (e: React.FormEvent) => Promise<boolean>;
 
   editError: string;
@@ -197,7 +197,7 @@ export default function InventoryPageUI({
           flexGrow: 1, 
           alignItems: 'stretch', 
           marginBottom: 24,
-          height: '0px',                     
+          height: '0px',                      
           minHeight: 'calc(102.5vh - 270px)', 
           maxHeight: 'calc(102.5vh - 270px)'  
         }}>        
@@ -275,6 +275,10 @@ export default function InventoryPageUI({
                         };
 
                         const textColor = (actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected) ? '#FFFFFF' : '#000000';
+                        
+                        // FIXED: Re-mapped evaluation checks to handle red indicators for both low/empty labels
+                        const normalizedStatus = (item.stock_status || '').toUpperCase();
+                        const isDangerAlert = normalizedStatus === 'LOW STOCK' || normalizedStatus === 'NO STOCK' || normalizedStatus === 'OUT OF STOCK';
 
                         return (
                           <tr key={item.ingredient_id} onClick={handleRowClick} className={trClass} style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
@@ -284,8 +288,14 @@ export default function InventoryPageUI({
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
                             <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
-                              <span style={{ fontWeight: 700, fontSize: 12, color: ((actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected)) ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29') }}>
-                                {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
+                              <span style={{ 
+                                fontWeight: 700, 
+                                fontSize: 12, 
+                                color: ((actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected)) 
+                                  ? '#FFFFFF' 
+                                  : isDangerAlert ? '#C62828' : '#09AA29' 
+                              }}>
+                                {isDangerAlert ? '🔴 ' : '🟢 '}
                                 {item.stock_status}
                               </span>
                             </td>

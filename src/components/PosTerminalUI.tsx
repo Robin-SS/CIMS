@@ -27,7 +27,7 @@ interface PosTerminalUIProps {
   onSelectCategory: (category: string) => void;
   actionView: string;
   setActionView: (view: string) => void;
-  
+
   productName: string;
   setProductName: (v: string) => void;
   productCategory: string;
@@ -36,6 +36,7 @@ interface PosTerminalUIProps {
   setProductPrice: (v: string) => void;
   formError: string;
   isSubmitting: boolean;
+
   selectedRecipes: any[];
   handleAddIngredientRow: () => void;
   handleUpdateRecipeRow: (index: number, fields: any) => void;
@@ -51,6 +52,7 @@ interface PosTerminalUIProps {
 
   selectedDeleteIds?: number[];
   setSelectedDeleteIds?: React.Dispatch<React.SetStateAction<number[]>>;
+  
   onIngredientRequestSubmit?: (payload: { ingredient_id: number; quantity: number; reason: string }) => Promise<void>;
   userId?: string | number;
   username?: string;
@@ -89,30 +91,23 @@ export default function PosTerminalUI({
   activityFilter,
   setActivityFilter,
 }: PosTerminalUIProps) {
-  
   const navigate = useNavigate();
   const { ingredients } = useInventory();
   const isAdmin = userRole?.toLowerCase() === 'admin';
-  const categories = ['ALL', 'CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES', 'EXTRAS'];
 
+  const categories = ['ALL', 'CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES', 'EXTRAS'];
   const safeProducts = products || [];
-  const safeActivityLogs = activityLogs ?? [];
+
   const filteredProducts = selectedCategory === 'ALL' 
     ? safeProducts 
     : safeProducts.filter(p => (p.product_category || '').toUpperCase() === selectedCategory);
 
   const productsToDelete = safeProducts.filter(p => selectedDeleteIds.includes(p.product_id));
 
-  // --- 1. PROPERLY SCOPED STATE HOOKS (OUTSIDE OF EVENT HANDLERS) ---
   const [localAdjustmentRequests, setLocalAdjustmentRequests] = useState<any[]>([]);
-  
-  // FIX: Fallback to numerical 2 instead of string "2" to comply with DB profile row logic
   const activeUserId = userId && String(userId).trim(); 
-  // username is already resolved in AuthContext (from the profiles table),
-  // so it's passed straight in as a prop instead of fetched again here.
   const currentUsername = username || 'You';
 
-  // --- 2. QUERY READING DATA FORMATTED SPECIFICALLY TO YOUR BACKEND COLUMNS ---
   const fetchAdjustmentRequests = async () => {
     try {
       const { data, error } = await supabase
@@ -122,20 +117,19 @@ export default function PosTerminalUI({
 
       if (error) throw error;
 
-      // Resolve usernames with a separate lookup instead of a named FK join,
-      // since the join breaks if the constraint name isn't an exact match.
       const requesterIds = Array.from(
         new Set((data || []).map((req: any) => req.requested_by).filter(Boolean))
       );
-      let usernameById: Record<string, string> = {};
 
+      let usernameById: Record<string, string> = {};
       if (requesterIds.length > 0) {
         const { data: profilesData, error: profilesError } = await supabase
           .from('profiles')
           .select('id, username')
           .in('id', requesterIds);
-
+        
         if (profilesError) throw profilesError;
+        
         usernameById = Object.fromEntries(
           (profilesData || []).map((p: any) => [p.id, p.username])
         );
@@ -143,14 +137,15 @@ export default function PosTerminalUI({
 
       const formattedRequests = data.map((req: any) => {
         const matchedIngredient = ingredients.find((ing) => ing.ingredient_id === req.ingredient_id);
+        
         return {
-          id: req.request_id, // Maps DB 'request_id' to React local 'id'
+          id: req.request_id,
           username: usernameById[req.requested_by] || 'System', 
           ingredient_id: req.ingredient_id,
           ingredient_name: matchedIngredient?.ingredient_name || `Ingredient #${req.ingredient_id}`, 
           quantity: req.quantity,
           reason: req.reason,
-          status: req.approval_status || 'pending' // Maps DB 'approval_status' to React local 'status'
+          status: req.approval_status || 'pending'
         };
       });
 
@@ -160,7 +155,6 @@ export default function PosTerminalUI({
     }
   };
 
-  // Run automatically when switching tabs
   useEffect(() => {
     if (activeTab === 'PRODUCT REQUEST') {
       fetchAdjustmentRequests();
@@ -170,10 +164,6 @@ export default function PosTerminalUI({
     }
   }, [activeTab]);
 
-  // --- 3. OPTIMISTIC UPDATE: show the just-submitted request immediately, ---
-  // then reconcile with the DB in the background. This means the row still
-  // appears even if the re-fetch above fails (e.g. wrong FK relationship
-  // name, or a missing RLS SELECT policy on inventory_adjustment_requests).
   const handleNewRequestLogged = (insertedRow: any) => {
     const matchedIngredient = ingredients.find(
       (ing) => ing.ingredient_id === insertedRow.ingredient_id
@@ -191,9 +181,6 @@ export default function PosTerminalUI({
       },
       ...prev
     ]);
-
-    // Try to re-sync with the DB so the real username/status come through.
-    // If this silently fails, the optimistic row above still stays visible.
     fetchAdjustmentRequests();
   };
 
@@ -215,8 +202,7 @@ export default function PosTerminalUI({
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif", padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box' }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
-
-      {/* HEADER */}
+      
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} alt="Logo" />
@@ -224,7 +210,6 @@ export default function PosTerminalUI({
             <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
-
         <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '2px solid #f2d8c3' }}>
           {['POINT OF SALES', 'RECENT ACTIVITY', 'PRODUCT REQUEST'].map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: 24, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, letterSpacing: 0.5, transition: 'all 0.2s', backgroundColor: activeTab === tab ? '#faebe0' : 'transparent', color: activeTab === tab ? '#D1915F' : '#D1915F' }}>
@@ -232,7 +217,6 @@ export default function PosTerminalUI({
             </button>
           ))}
         </div>
-
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -241,7 +225,6 @@ export default function PosTerminalUI({
         </div>
       </header>
 
-      {/* CONDITIONAL MAIN WORKSPACE */}
       {activeTab === 'POINT OF SALES' && (
         <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
           <section style={{ border: '2px solid #f2d8c3', borderRadius: 12, background: '#FFFFFF', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
@@ -252,17 +235,57 @@ export default function PosTerminalUI({
                 </button>
               ))}
             </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: 16, overflowY: 'auto', maxHeight: 500, paddingRight: 8 }}>
               {filteredProducts.map(product => {
                 const isSelectedForDeletion = selectedDeleteIds.includes(product.product_id);
                 const isSelectedForEditing = actionView === 'edit' && productName && product.product_name === productName;
+                
+                // 1. Cross-reference live recipes inside the grid loop for LOW STOCK warning thresholds
+                let hasLowStock = false;
+                if ((product as any).prod_ingredient && (product as any).prod_ingredient.length > 0) {
+                  hasLowStock = (product as any).prod_ingredient.some((recipe: any) => {
+                    const match = ingredients.find((ing) => ing.ingredient_id === recipe.ingredient_id);
+                    return match ? Number(match.stock_quantity) <= Number(match.threshold) : false;
+                  });
+                } else if (ingredients && ingredients.length > 0) {
+                  hasLowStock = ingredients.some((ing) => {
+                    const isBelowThreshold = Number(ing.stock_quantity) <= Number(ing.threshold);
+                    const isKeywordMatch = product.product_name.toLowerCase().includes(ing.ingredient_name.toLowerCase());
+                    return isBelowThreshold && isKeywordMatch;
+                  });
+                }
 
-                  return (
+                // 2. Checks if stock is 0 OR less than the recipe's standard required portion
+                let isInsufficientStock = false;
+                if ((product as any).prod_ingredient && (product as any).prod_ingredient.length > 0) {
+                  isInsufficientStock = (product as any).prod_ingredient.some((recipe: any) => {
+                    const match = ingredients.find((ing) => ing.ingredient_id === recipe.ingredient_id);
+                    if (!match) return false;
+                    
+                    const currentStock = Number(match.stock_quantity);
+                    const neededStock = Number(recipe.standard_quantity);
+                    
+                    return currentStock <= 0 || currentStock < neededStock;
+                  });
+                } else if (ingredients && ingredients.length > 0) {
+                  isInsufficientStock = ingredients.some((ing) => {
+                    const isZeroStock = Number(ing.stock_quantity) <= 0;
+                    const isKeywordMatch = product.product_name.toLowerCase().includes(ing.ingredient_name.toLowerCase());
+                    return isZeroStock && isKeywordMatch;
+                  });
+                }
+
+                const isCardDisabled = (!product.availability || isInsufficientStock) && actionView !== 'edit' && actionView !== 'delete';
+
+                // FIXED: Changed flags below to read (actionView === 'menu' || actionView === 'order') 
+                // This ensures the visual banners stay active inside Take Orders mode!
+                const shouldShowStatusBanners = actionView === 'menu' || actionView === 'order';
+
+                return (
                     <button 
                       key={product.product_id} 
                       onClick={() => onProductClick(product)} 
-                      disabled={!product.availability && actionView !== 'edit' && actionView !== 'delete'} 
+                      disabled={isCardDisabled} 
                       style={{ 
                         background: isSelectedForEditing ? '#faebe0' : '#FFFFFF', 
                         border: isSelectedForDeletion 
@@ -272,26 +295,64 @@ export default function PosTerminalUI({
                             : actionView === 'edit' 
                               ? '2px dashed #D1915F' 
                               : '2px solid #f2d8c3', 
-                              
                         borderRadius: 12, 
                         padding: 12, 
                         display: 'flex', 
                         flexDirection: 'column', 
                         alignItems: 'center', 
-                        cursor: 'pointer', 
-                        opacity: (product.availability || actionView === 'edit' || actionView === 'delete') ? 1 : 0.5, 
+                        cursor: isCardDisabled ? 'not-allowed' : 'pointer', 
+                        opacity: isCardDisabled ? 0.35 : 1, 
                         transition: 'all 0.1s ease', 
                         boxSizing: 'border-box',
                         boxShadow: isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
                         transform: (isSelectedForDeletion || isSelectedForEditing) ? 'scale(0.97)' : 'none'
-                      }} 
+                      }}
                     >
-                    <div style={{ width: 60, height: 80, backgroundColor: '#F9F8F6', borderRadius: 8, marginBottom: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
-                      {isSelectedForDeletion && <div style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#FF2C2C', color: '#FFF', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold' }}>✓</div>}
-                      {product.image_url ? <img src={product.image_url} alt={product.product_name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>🥤</span>}
+                    <div style={{ width: 60, height: 80, backgroundColor: '#F9F8F6', borderRadius: 8, marginBottom: 12, display: 'flex', justifyContent: 'center', alignItems: 'center', position: 'relative', overflow: 'hidden' }}>
+                      {isSelectedForDeletion && <div style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#FF2C2C', color: '#FFF', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold', zIndex: 5 }}>✖</div>}
+                      {product.image_url ? <img src={product.image_url} alt={product.product_name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>☕</span>}
+                      
+                      {/* CONDITIONAL BACKDROP TEXT BANNER */}
+                      {isInsufficientStock && shouldShowStatusBanners ? (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: 'rgba(30, 30, 30, 0.9)',
+                          color: '#FFFFFF',
+                          fontSize: '9px',
+                          fontWeight: 800,
+                          textAlign: 'center',
+                          padding: '3px 0',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.3px',
+                          zIndex: 3
+                        }}>
+                          SOLD OUT
+                        </div>
+                      ) : hasLowStock && shouldShowStatusBanners ? (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: 'rgba(220, 38, 38, 0.9)',
+                          color: '#FFFFFF',
+                          fontSize: '9px',
+                          fontWeight: 800,
+                          textAlign: 'center',
+                          padding: '3px 0',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.3px',
+                          zIndex: 3
+                        }}>
+                          LOW STOCK
+                        </div>
+                      ) : null}
                     </div>
                     <span style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 700, color: '#D1915F', textAlign: 'center', lineHeight: 1.2, marginBottom: 4, height: 26, overflow: 'hidden' }}>{product.product_name}</span>
-                    <span style={{ fontFamily: "Inter",fontSize: 12, fontWeight: 800, color: '#D1915F' }}> ₱ {Number(product.product_price).toFixed(2)} </span>
+                    <span style={{ fontFamily: "Inter", fontSize: 12, fontWeight: 800, color: '#D1915F' }}>₱ {Number(product.product_price).toFixed(2)} </span>
                   </button>
                 );
               })}
@@ -302,10 +363,10 @@ export default function PosTerminalUI({
             {actionView === 'delete' ? (
               <div style={{ background: '#FFFFFF', border: '2px solid #FFC1C1', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#FF2C2C' }}>DELETE PRODUCTS</h3>
+                  <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FF2C2C' }}>DELETE PRODUCTS</h3>
                   <button type="button" onClick={() => { setActionView('menu'); if(setSelectedDeleteIds) setSelectedDeleteIds([]); }} style={{ background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
                 </div>
-                <div style={{ background: '#FFF0F0', color: '#C53030', fontSize: 12, padding: '10px 12px', borderRadius: 10, fontWeight: 600, border: '2px solid #C53030' }}>⚠️ Multi-select active. Select cards on the left grid to queue them for permanent extraction.</div>
+                <div style={{ background: '#FFF0F0', color: '#C53030', fontSize: 12, padding: '10px 12px', borderRadius: 10, fontWeight: 600, border: '2px solid #C53030' }}>🚨 Multi-select active. Select cards on the left grid to queue them for permanent extraction.</div>
                 {formError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}><AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} /><span>{formError}</span></div>}
                 <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: 280, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {productsToDelete.length === 0 ? <div style={{ textAlign: 'center', color: '#A0AEC0', fontSize: 13, marginTop: 40, fontStyle: 'italic' }}>No items currently queued.</div> : productsToDelete.map((prod) => (
@@ -326,12 +387,14 @@ export default function PosTerminalUI({
                 
                 {actionView === 'edit' && !productName && <div style={{ background: '#FFFBEB', border: '2px solid #FDE68A', color: '#B45309', fontSize: 11, padding: '10px 12px', borderRadius: 10, textAlign: 'center', fontWeight: 600 }}>💡 Tap any catalog product card on the left to pre-fill its form fields.</div>}
                 {formError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}><AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} /><span>{formError}</span></div>}
+                
                 <form onSubmit={handleFormSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12, flexGrow: 1 }}>
                   <div><label style={labelStyle}>Product Name</label><input type="text" value={productName} onChange={e => setProductName(e.target.value)} placeholder="e.g., Latte" style={inputStyle} /></div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                     <div><label style={labelStyle}>Category</label><select value={productCategory} onChange={e => setProductCategory(e.target.value)} style={inputStyle}><option value="Classics">Classics</option><option value="Signatures">Signatures</option><option value="Non-Coffee">Non-Coffee</option><option value="Desserts">Desserts</option><option value="Pastries">Pastries</option><option value="Extras">Extras</option></select></div>
                     <div><label style={labelStyle}>Price (PHP)</label><input type="number" step="0.01" value={productPrice} onChange={e => setProductPrice(e.target.value)} placeholder="150.00" style={inputStyle} /></div>
                   </div>
+                  
                   <div style={{ borderTop: '1px solid #D3C9BE', paddingTop: 10, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <label style={{ ...labelStyle, marginBottom: 0 }}>Recipe Ingredients</label>
@@ -350,14 +413,29 @@ export default function PosTerminalUI({
                       ))}
                     </div>
                   </div>
+                  
                   <button type="submit" disabled={isSubmitting} style={{ ...submitBtnStyle, background: isSubmitting ? '#B0A89E' : actionView === 'edit' ? '#D1915F' : '#09AA29' }}>{isSubmitting ? 'SAVING CHANGES...' : actionView === 'edit' ? 'CONFIRM AND UPDATE' : 'CONFIRM AND PUBLISH'}</button>
                 </form>
               </div>
-            ) : isAdmin ? (
+            ) : isAdmin && actionView === 'menu' ? (
               <div style={{ background: '#ffffff', border: '2px solid #f2d8c3', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
                 <button onClick={() => setActionView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', cursor: 'pointer' }}><div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="Add" style={{ width: 24, height: 24 }} /></div><span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>ADD</span></button>
                 <button onClick={() => setActionView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', cursor: 'pointer' }}><div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={editIcon} alt="Edit" style={{ width: 24, height: 24 }} /></div><span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>EDIT</span></button>
                 <button onClick={() => setActionView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', cursor: 'pointer' }}><div style={{ width: 45, height: 45, borderRadius: '50%', border: '2px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="Delete" style={{ width: 24, height: 24 }} /></div><span style={{ fontSize: 20, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span></button>
+                
+                <hr style={{ border: 'none', borderTop: '2px solid #f2d8c3', margin: '4px 0' }} />
+                
+                <button onClick={() => setActionView('order')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#D1915F', borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(209, 145, 95, 0.2)' }}>
+                  <div style={{ width: 45, height: 45, borderRadius: '50%', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <span style={{ fontSize: 22 }}>🛒</span>
+                  </div>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF' }}>TAKE ORDERS</span>
+                </button>
+              </div>
+            ) : actionView === 'order' ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+                <button onClick={() => setActionView('menu')} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>← Back to Menu</button>
+                <div style={{ flexGrow: 1, height: '100%' }}>{children}</div>
               </div>
             ) : (
               <div style={{ flexGrow: 1, height: '100%' }}>{children}</div>
@@ -365,31 +443,26 @@ export default function PosTerminalUI({
           </aside>
         </main>
       )}
-
-      
-            {/* ====================[ RECENT ACTIVITY TAB ]==================== */}
-            {activeTab === 'RECENT ACTIVITY' && (
+             
+      {activeTab === 'RECENT ACTIVITY' && (
         <main style={{ 
-          flexGrow: 1, 
-          height: '0px',                    
-          minHeight: 'calc(102.5vh - 270px)',  
-          maxHeight: 'calc(102v.5h - 270px)',
-          background: '#FFFFFF', 
-          borderRadius: 12, 
-          border: '2px solid #f2d8c3', 
-          marginBottom: 24, 
-          display: 'flex', 
-          flexDirection: 'column', 
-          overflow: 'hidden'                
+           flexGrow: 1, 
+           height: '0px', 
+           minHeight: 'calc(102.5vh - 270px)', 
+           maxHeight: 'calc(102.5vh - 270px)',
+           background: '#FFFFFF', 
+           borderRadius: 12, 
+           border: '2px solid #f2d8c3', 
+           marginBottom: 24, 
+           display: 'flex', 
+           flexDirection: 'column', 
+           overflow: 'hidden' 
         }}>
-          
-          {/* TITLE BAR WITH FILTER DROPDOWN */}
           <div style={{ background: '#faebe0', padding: '12px 20px', borderBottom: '2px solid #f2d8c3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase' }}>
               RECENT ACTIVITY
             </h2>
             
-            {/* The Dropdown Filter */}
             {setActivityFilter && (
               <select 
                 value={activityFilter} 
@@ -408,18 +481,17 @@ export default function PosTerminalUI({
             )}
           </div>
 
-          {/* TABLE HEADERS */}
           <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
-            padding: '12px 20px', 
-            background: '#FFFFFF', 
-            borderBottom: '2px solid #f2d8c3', 
-            fontSize: 12, 
-            fontWeight: 600, 
-            color: '#D1915F',
-            marginTop: '3px', 
-          }}>
+             display: 'grid', 
+             gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
+             padding: '12px 20px', 
+             background: '#FFFFFF', 
+             borderBottom: '2px solid #f2d8c3', 
+             fontSize: 12, 
+             fontWeight: 600, 
+             color: '#D1915F',
+             marginTop: '3px',
+           }}>
             <span style={{ textAlign: 'center' }}>User ID</span>
             <span style={{ textAlign: 'center' }}>Log ID</span>
             <span>Activity</span>
@@ -427,12 +499,11 @@ export default function PosTerminalUI({
             <span style={{ textAlign: 'center' }}>Timestamp</span>
           </div>
 
-          {/* TABLE BODY (This part will now handle all the inner scrolling smoothly) */}
           <div style={{ flexGrow: 1, overflowY: 'auto', paddingTop: '12px' }}>
             {filteredLogs.map((log, index) => (
               <div key={index} style={{ 
-                display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
-                padding: '16px 20px', borderBottom: '2px solid #f2e4d9',
+                 display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
+                 padding: '16px 20px', borderBottom: '2px solid #f2e4d9',
                 fontSize: 13, color: '#8A7E72', alignItems: 'center'
               }}>
                 <span style={{ textAlign: 'center' }}>{log.user_id}</span>
@@ -454,20 +525,19 @@ export default function PosTerminalUI({
         </main>
       )}
 
-      {/* ====================[ PRODUCT REQUEST TAB ]==================== */}
-        {activeTab === 'PRODUCT REQUEST' && (
-          <main style={{ 
+      {activeTab === 'PRODUCT REQUEST' && (
+        <main style={{ 
             display: 'grid', 
             gridTemplateColumns: '1fr 360px', 
             gap: 24, 
             flexGrow: 1, 
-            alignItems: 'stretch',              
+            alignItems: 'stretch', 
             marginBottom: 24,
-            height: '0px',                      
+            height: '0px', 
             minHeight: 'calc(102.5vh - 270px)', 
-            maxHeight: 'calc(102.5vh - 270px)'  
+            maxHeight: 'calc(102.5vh - 270px)'
           }}>
-            <section style={{ 
+          <section style={{ 
               border: '2px solid #f2d8c3', 
               borderRadius: 12, 
               background: '#FFFFFF', 
@@ -477,61 +547,56 @@ export default function PosTerminalUI({
               boxSizing: 'border-box', 
               minWidth: 0, 
               height: '100%',
-              overflow: 'hidden'                // 👈 Caps vertical overflow internally
+              overflow: 'hidden' 
             }}>
-              {/* HEADER AND TITLE AREA */}
-              <div style={{ paddingBottom: 16, borderBottom: '2px solid #f2d8c3', marginBottom: 16 }}>
-                <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase', letterSpacing: 0.5 }}>Logged Ingredient Requests</h2>
-                <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#8A7E72' }}>Reviewing system reconciliation data and operational queue logs.</p>
-              </div>
+            <div style={{ paddingBottom: 16, borderBottom: '2px solid #f2d8c3', marginBottom: 16 }}>
+              <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase', letterSpacing: 0.5 }}>Logged Ingredient Requests</h2>
+              <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#8A7E72' }}>Reviewing system reconciliation data and operational queue logs.</p>
+            </div>
 
-              {/* TRACKING TABLE HEADERS */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '10px 16px', background: '#faebe0', borderRadius: '8px 8px 0 0', fontSize: 11, fontWeight: 700, color: '#D1915F', textTransform: 'uppercase', border: '2px solid #f2d8c3', borderBottom: 'none' }}>
-                <span>Req No.</span><span>Requested By</span><span>Item</span><span>Quantity Change</span><span style={{ textAlign: 'center' }}>Status</span>
-              </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '10px 16px', background: '#faebe0', borderRadius: '8px 8px 0 0', fontSize: 11, fontWeight: 700, color: '#D1915F', textTransform: 'uppercase', border: '2px solid #f2d8c3', borderBottom: 'none' }}>
+              <span>Req No.</span><span>Requested By</span><span>Item</span><span>Quantity Change</span><span style={{ textAlign: 'center' }}>Status</span>
+            </div>
 
-              {/* SCROLLABLE TABLE CONTENT WRAPPER */}
-              <div style={{ flexGrow: 1, overflowY: 'auto', maxWidth: '100%', border: '2px solid #f2d8c3', borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
-                {localAdjustmentRequests && localAdjustmentRequests.length > 0 ? (
-                  localAdjustmentRequests.map((req, idx) => {
-                    const rowKey = req.id !== null && req.id !== undefined ? req.id : `fallback-key-${idx}`;
-                    const statusLower = req.status?.toLowerCase() || 'pending';
-                    const badgeBg = statusLower === 'pending' ? '#FEF3C7' : statusLower === 'rejected' ? '#FEE2E2' : '#DCFCE7';
-                    const badgeText = statusLower === 'pending' ? '#D97706' : statusLower === 'rejected' ? '#DC2626' : '#15803D';
-
-                    return (
-                      <div key={rowKey} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '14px 16px', borderBottom: '1px solid #f2d8c3', fontSize: 13, color: '#1E1E1E', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 600, color: '#8A7E72' }}>#{req.id ?? '--'}</span>
-                        <span style={{ textTransform: 'capitalize' }}>{req.username || 'System'}</span>
-                        <span style={{ fontWeight: 700 }}>{req.ingredient_name || `ID: ${req.ingredient_id}`}</span>
-                        <span style={{ color: req.quantity < 0 ? '#FF2C2C' : '#09AA29', fontWeight: 600 }}>{req.quantity > 0 ? `+${req.quantity}` : req.quantity}</span>
-                        <div style={{ display: 'flex', justifyContent: 'center' }}>
-                          <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', background: badgeBg, color: badgeText }}>{req.status || 'Pending'}</span>
-                        </div>
+            <div style={{ flexGrow: 1, overflowY: 'auto', maxWidth: '100%', border: '2px solid #f2d8c3', borderTop: 'none', borderRadius: '0 0 8px 8px' }}>
+              {localAdjustmentRequests && localAdjustmentRequests.length > 0 ? (
+                localAdjustmentRequests.map((req, idx) => {
+                  const rowKey = req.id !== null && req.id !== undefined ? req.id : `fallback-key-${idx}`;
+                  const statusLower = req.status?.toLowerCase() || 'pending';
+                  const badgeBg = statusLower === 'pending' ? '#FEF3C7' : statusLower === 'rejected' ? '#FEE2E2' : '#DCFCE7';
+                  const badgeText = statusLower === 'pending' ? '#D97706' : statusLower === 'rejected' ? '#DC2626' : '#15803D';
+                  
+                  return (
+                    <div key={rowKey} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '14px 16px', borderBottom: '1px solid #f2d8c3', fontSize: 13, color: '#1E1E1E', alignItems: 'center' }}>
+                      <span style={{ fontWeight: 600, color: '#8A7E72' }}>#{req.id ?? '--'}</span>
+                      <span style={{ textTransform: 'capitalize' }}>{req.username || 'System'}</span>
+                      <span style={{ fontWeight: 700 }}>{req.ingredient_name || `ID: ${req.ingredient_id}`}</span>
+                      <span style={{ color: req.quantity < 0 ? '#FF2C2C' : '#09AA29', fontWeight: 600 }}>{req.quantity > 0 ? `+${req.quantity}` : req.quantity}</span>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', background: badgeBg, color: badgeText }}>{req.status || 'Pending'}</span>
                       </div>
-                    );
-                  })
-                ) : (
-                  <div style={{ padding: 40, textAlign: 'center', color: '#8A7E72', fontStyle: 'italic', fontSize: 13 }}>No recorded adjustment logs in session view.</div>
-                )}
-              </div>
-            </section>
-
-            {/* RIGHT SIDE PANEL SIDEBAR */}
-            <aside style={{ display: 'flex', flexDirection: 'column', width: '360px', minWidth: '360px', boxSizing: 'border-box', height: '100%' }}>
-              {userRole === 'admin' ? (
-                <AdjustmentRequestReviewPanel requests={localAdjustmentRequests} userId={activeUserId} onReviewed={fetchAdjustmentRequests} />
+                    </div>
+                  );
+                })
               ) : (
-                <IngredientAdjustmentForm ingredients={ingredients} userId={activeUserId} onSuccess={handleNewRequestLogged} /> 
+                <div style={{ padding: 40, textAlign: 'center', color: '#8A7E72', fontStyle: 'italic', fontSize: 13 }}>No recorded adjustment logs in session view.</div>
               )}
-            </aside>
-          </main>
-        )}
+            </div>
+          </section>
 
-      {/* FOOTER NAV */}
+          <aside style={{ display: 'flex', flexDirection: 'column', width: '360px', minWidth: '360px', boxSizing: 'border-box', height: '100%' }}>
+            {userRole === 'admin' ? (
+              <AdjustmentRequestReviewPanel requests={localAdjustmentRequests} userId={activeUserId} onReviewed={fetchAdjustmentRequests} />
+            ) : (
+              <IngredientAdjustmentForm ingredients={ingredients} userId={activeUserId} onSuccess={handleNewRequestLogged} /> 
+            )}
+          </aside>
+        </main>
+      )}
+
       <nav style={{ background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', marginTop: 16 }}>
         {[
-          { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
+          { label: 'HOME',         icon: homeIcon,      path: '/home',      active: false },
           { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: true  },
           { label: 'INVENTORY',      icon: inventoryIcon, path: '/inventory', active: false },
           { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
