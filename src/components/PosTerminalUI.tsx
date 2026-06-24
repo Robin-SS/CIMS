@@ -592,7 +592,7 @@ export default function PosTerminalUI({
                 userId={activeUserId} 
                 onReviewed={async () => {
                   await fetchAdjustmentRequests(); // 1. Refresh the pending list
-                  await refreshInventory();        // 2. 🌟 INSTANTLY REFRESH THE INVENTORY!
+                  await refreshInventory();        
                 }} 
               />
             ) : (
