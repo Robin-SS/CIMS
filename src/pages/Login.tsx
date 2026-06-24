@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoginUI from '../components/LoginUI';
+import { ActivityService } from '../services/ActivityService';
 
 export default function Login() {
   const { login } = useAuth();
@@ -81,6 +82,10 @@ export default function Login() {
       setLockedUntil(null);
       setError(null);
 
+      if (result.user) {
+        await ActivityService.logAction(result.user.id, 'Logged in', 'User Authentication');
+      }
+      
       alert('Login successful! Welcome back.');
     } catch (err) {
       setError('An unexpected error occurred.');

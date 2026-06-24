@@ -12,8 +12,18 @@ export default function NotificationPanel({ ingredients }: NotificationPanelProp
     return status.includes('low stock') || status.includes('no stock');
   });
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+    return (
+      <div 
+        style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          gap: 12, 
+          flexGrow: 1,         
+          height: '100%',      
+          overflowY: 'auto',
+          paddingRight: 4 
+        }}
+      >
 
       {alertItems.length === 0 ? (
         <div style={{ padding: 16, textAlign: 'center', color: '#09AA29', fontWeight: 600, fontSize: 13, background: '#E8F5E9', borderRadius: 10 }}>
