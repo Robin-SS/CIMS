@@ -1,18 +1,5 @@
-import React from 'react';
-
-interface KpiData {
-  totalIngredientsKg: number;
-  mostConsumedText: string;
-  lowStockItemsCount: number;
-}
-
-interface AnalyticsKpiCardsProps {
-  data: KpiData;
-  isLoading: boolean;
-}
-
 export default function AnalyticsKpiCards({ data, isLoading }: AnalyticsKpiCardsProps) {
-  // Height 100% to fill the aside slot container completely
+  // 🌟 MODIFIED: Height 100% to fill the aside slot container completely
   const cardContainerStyle: React.CSSProperties = { 
     display: 'flex', 
     flexDirection: 'column', 
@@ -22,7 +9,7 @@ export default function AnalyticsKpiCards({ data, isLoading }: AnalyticsKpiCards
     fontFamily: "'Inter', sans-serif" 
   };
 
-  // Added flex: 1 so each card grows to share the space evenly
+  // 🌟 MODIFIED: Added flex: 1 so each card grows to share the space evenly
   const cardBaseStyle: React.CSSProperties = { 
     background: '#FFFFFF', 
     borderRadius: 14, 
@@ -55,11 +42,11 @@ export default function AnalyticsKpiCards({ data, isLoading }: AnalyticsKpiCards
       {/* CARD 2 */}
       <div style={cardBaseStyle}>
         <div style={{ ...metricSideStyle, padding: '4px 12px' }}>
+          <span style={{ fontSize: 10, fontWeight: 700, color: '#8A7E72', marginBottom: 2 }}>
+            {data.mostConsumedText.split(' - ')[1] || '40L/week'}
+          </span>
           <span style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', textAlign: 'center', lineHeight: 1.1 }}>
             {data.mostConsumedText.split(' - ')[0]}
-          </span>
-           <span style={{ fontSize: 10, fontWeight: 700, color: '#8A7E72', marginTop: 4 }}>
-            {data.mostConsumedText.split(' - ')[1] || '40L/week'}
           </span>
         </div>
         <div style={titleSideStyle}><span>Most</span><span>Consumed</span></div>

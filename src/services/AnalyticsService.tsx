@@ -1,5 +1,5 @@
 import { supabase } from '../supabaseClient';
-import type { KPIAnalytics } from '../types/Analytics';
+import type { KPIAnalytics, IngredientUsageDetail  } from '../types/Analytics';
 
 export const AnalyticsService = {
   async getUsageMetrics(): Promise<{ data: KPIAnalytics | null; error: string | null }> {
@@ -57,15 +57,40 @@ export const AnalyticsService = {
         }
       });
 
-      const lowStockCount = (ingredients || []).filter(
-        ing => Number(ing.stock_quantity) <= Number(ing.threshold)
-      ).length;
+      const details: IngredientUsageDetail[] = (ingredients || []).map(ing => {
+        const used = ingredientUsageMap[ing.ingredient_name]?.total || 0;
+        const stock = Number(ing.stock_quantity);
+        const thresh = Number(ing.threshold);
+        let status: 'IN STOCK' | 'LOW STOCK' | 'NO STOCK' = 'IN STOCK';
+
+        // Conditional Evaluation Engine
+        if (stock <= 0) status = 'NO STOCK';
+        else if (stock <= thresh) status = 'LOW STOCK';
+
+        return {
+          id: ing.ingredient_id,
+          name: ing.ingredient_name,
+          inStock: stock,
+          threshold: thresh,
+          usedThisMonth: used,
+          unit: ing.measurement_unit || 'L',
+          status
+        };
+      });
+
+      details.sort((a, b) => {
+        const rank = { 'NO STOCK': 2, 'LOW STOCK': 1, 'IN STOCK': 0 };
+        return rank[b.status] - rank[a.status];
+      });
+
+      const lowStockCount = details.filter(d => d.status !== 'IN STOCK').length;
 
       return {
         data: {
           totalWeightKg: totalUsageInGramsOrMl, 
           mostConsumedItem: maxAmount > 0 ? mostConsumedStr : 'None - 0/week', 
-          lowStockCount
+          lowStockCount,
+          details
         },
         error: null
       };

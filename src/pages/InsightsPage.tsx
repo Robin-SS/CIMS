@@ -3,7 +3,8 @@ import { useAuth } from '../context/AuthContext';
 import InsightsPageUI from '../components/InsightsPageUI';
 import AnalyticsKpiCards from '../features/AnalyticsKpiCards';
 import { AnalyticsService } from '../services/AnalyticsService';
-import type { KPIAnalytics } from '../types/Analytics';
+import RestockList from '../features/RestockList';
+import type { KPIAnalytics, IngredientUsageDetail  } from '../types/Analytics';
 
 export default function InsightsPage() {
   const { user } = useAuth();
@@ -13,7 +14,8 @@ export default function InsightsPage() {
   const [metrics, setMetrics] = useState<KPIAnalytics>({
     totalWeightKg: 0,
     mostConsumedItem: 'Calculating...',
-    lowStockCount: 0
+    lowStockCount: 0,
+    details: [] 
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
@@ -84,7 +86,8 @@ export default function InsightsPage() {
               </div>
             </div>
 
-            <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+           <div style={{ flexGrow: 1, border: '2px solid #E5E5E5', borderRadius: 12, display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+              <RestockList items={metrics.details} isLoading={isLoading} />
             </div>
           </div>
         ) : (
