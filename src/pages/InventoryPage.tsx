@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 import type { Ingredient } from '../types/InventoryItem';
@@ -14,7 +14,7 @@ type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const { ingredients } = useInventory();
+  const { ingredients, isLoading, refreshInventory } = useInventory();
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionView, setActionView] = useState<ActionView>('menu');
@@ -22,6 +22,10 @@ export default function InventoryPage() {
   // Selection States
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    refreshInventory();
+  }, []);
 
   const handleToggleSelect = (item: Ingredient) => {
     setSelectedIds((prev) => {
@@ -39,6 +43,14 @@ export default function InventoryPage() {
     setSelectedIds(new Set());
   };
 
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#FFFFFF', color: '#D1915F', fontFamily: "'Inter', sans-serif" }}>
+        <h2>Loading Live Inventory...</h2>
+      </div>
+    );
+  }
+  
   return (
     <IngredientsTable ingredients={ingredients}>
       {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
