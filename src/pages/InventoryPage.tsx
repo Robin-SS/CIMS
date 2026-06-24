@@ -1,42 +1,130 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { useInventory } from '../context/InventoryContext';
+import type { Ingredient } from '../types/InventoryItem';
+
+import InventoryPageUI from '../components/InventoryPageUI';
+import IngredientsTable from '../features/IngredientsTable';
+import AddIngredientForm from '../features/AddIngredientForm';
+import EditIngredientForm from '../features/EditIngredientForm';
+import DeleteIngredientForm from '../features/DeleteIngredientForm';
+import NotificationPanel from '../features/NotificationPanel';
+
+type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
 export default function InventoryPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const isAdmin = user?.role === 'admin';
+  const { ingredients } = useInventory();
+  
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [actionView, setActionView] = useState<ActionView>('menu');
+  
+  // Selection States
+  const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const handleToggleSelect = (item: Ingredient) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(item.ingredient_id)) {
+        next.delete(item.ingredient_id);
+      } else {
+        next.add(item.ingredient_id);
+      }
+      return next;
+    });
+  };
+
+  const handleClearSelection = () => {
+    setSelectedIds(new Set());
+  };
 
   return (
-    <div className="min-h-screen bg-stone-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
-        <button onClick={() => navigate('/home')} className="flex items-center space-x-1.5 text-stone-500 hover:text-stone-800 font-medium text-sm mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> <span>Back to Home</span>
-        </button>
+    <IngredientsTable ingredients={ingredients}>
+      {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
+        <EditIngredientForm 
+          selectedIngredient={selectedIngredient} 
+          onSuccess={() => setSelectedIngredient(null)}
+        >
+          {(editProps) => (
+            <DeleteIngredientForm
+              selectedIds={selectedIds}
+              ingredients={ingredients}
+              onSuccess={handleClearSelection}
+            >
+              {(deleteProps) => (
+                <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
+                  {(addProps) => (
+                    <InventoryPageUI
+                      userRole={user?.role}
+                      isModalOpen={isModalOpen}
+                      setIsModalOpen={setIsModalOpen}
+                      sortedIngredients={sortedIngredients}
+                      sortColumn={sortColumn}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                      
+                      actionView={actionView}
+                      setActionView={setActionView}
 
-        <div className="flex justify-between items-center border-b border-stone-200 pb-4 mb-6">
-          <h1 className="text-3xl font-bold text-stone-800">📋 Café Stock Inventory</h1>
+                      // Selection Properties
+                      selectedIngredient={selectedIngredient}
+                      onSelectIngredient={setSelectedIngredient}
+                      selectedIds={selectedIds}
+                      onToggleSelect={handleToggleSelect}
+                      onClearSelection={handleClearSelection}
 
-          {/* Action Control Button - Only enabled for Admin */}
-          {isAdmin ? (
-            <button className="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-              + Add New Ingredient
-            </button>
-          ) : (
-            <span className="text-xs bg-stone-100 text-stone-400 border border-stone-200 px-3 py-1.5 rounded-full font-medium">
-              👁️ Read-Only Mode
-            </span>
+                      // Add Form Properties
+                      formError={addProps.formError}
+                      formName={addProps.formName}
+                      setFormName={addProps.setFormName}
+                      formCategory={addProps.formCategory}
+                      setFormCategory={addProps.setFormCategory}
+                      formQuantity={addProps.formQuantity}
+                      setFormQuantity={addProps.setFormQuantity}
+                      formUnit={addProps.formUnit}
+                      setFormUnit={addProps.setFormUnit}
+                      formThreshold={addProps.formThreshold}
+                      setFormThreshold={addProps.setFormThreshold}
+                      formStockDate={addProps.formStockDate}
+                      setFormStockDate={addProps.setFormStockDate}
+                      formExpiryDate={addProps.formExpiryDate}
+                      setFormExpiryDate={addProps.setFormExpiryDate}
+                      hasExpiry={addProps.hasExpiry}
+                      setHasExpiry={addProps.setHasExpiry}
+                      onFormSubmit={addProps.handleAddIngredient}
+                      
+                      // Edit Form Properties
+                      editError={editProps.editError}
+                      editName={editProps.editName}
+                      setEditName={editProps.setEditName}
+                      editCategory={editProps.editCategory}
+                      setEditCategory={editProps.setEditCategory}
+                      editQuantity={editProps.editQuantity}
+                      setEditQuantity={editProps.setEditQuantity}
+                      editUnit={editProps.editUnit}
+                      setEditUnit={editProps.setEditUnit}
+                      editThreshold={editProps.editThreshold}
+                      setEditThreshold={editProps.setEditThreshold}
+                      editStockDate={editProps.editStockDate}
+                      setEditStockDate={editProps.setEditStockDate}
+                      editExpiryDate={editProps.editExpiryDate}
+                      setEditExpiryDate={editProps.setEditExpiryDate}
+                      onEditSubmit={editProps.handleEditIngredient}
+                      
+                      // Delete Form Properties
+                      deleteError={deleteProps.deleteError}
+                      onDeleteSubmit={deleteProps.handleDeleteIngredients}
+                    >
+                      <NotificationPanel ingredients={ingredients} />
+                    </InventoryPageUI>
+                  )}
+                </AddIngredientForm>
+              )}
+            </DeleteIngredientForm>
           )}
-        </div>
-
-        <p className="text-stone-600">
-          Current Active Role: <strong className="text-amber-800 uppercase">{user?.role}</strong>
-        </p>
-
-        <div className="mt-6 border border-stone-200 rounded-xl overflow-hidden bg-stone-50 p-6 text-center text-stone-400">
-          [Inventory list database query table outputs populate here]
-        </div>
-      </div>
-    </div>
+        </EditIngredientForm>
+      )}
+    </IngredientsTable>
   );
 }
