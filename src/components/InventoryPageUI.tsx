@@ -50,8 +50,13 @@ interface InventoryPageUIProps {
   setFormStockDate: (v: string) => void;
   formExpiryDate: string;
   setFormExpiryDate: (v: string) => void;
+<<<<<<< Updated upstream
   hasExpiry: boolean;              
   setHasExpiry: (v: boolean) => void; 
+=======
+  hasExpiry: boolean;              // Added property input token mapping
+  setHasExpiry: (v: boolean) => void; // Added property input token mapping
+>>>>>>> Stashed changes
   onFormSubmit: (e: React.FormEvent) => Promise<boolean>;
 
   editError: string;
@@ -171,23 +176,36 @@ export default function InventoryPageUI({
         .inventory-row.edit-selected, .inventory-row.edit-selected:hover { background-color: #D1915F !important; color: #FFFFFF; }
       `}</style>
 
+<<<<<<< Updated upstream
      {/* HEADER */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} alt="Logo" />
+=======
+      {/* HEADER */}
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} />
+>>>>>>> Stashed changes
           <h1 style={{ fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E', lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
             <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
+<<<<<<< Updated upstream
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
+=======
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'white', padding: '15px 25px', borderRadius: 28, border: '1px solid #D3C9BE', boxShadow: '0 2px 6px rgba(0,0,0,0.04)', color: '#D1915F', fontWeight: 'bold', fontSize: 20 }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', overflow: 'hidden' }}>
+>>>>>>> Stashed changes
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
           <span>{userRole ? userRole.charAt(0).toUpperCase() + userRole.slice(1).toLowerCase() : 'Guest'}</span>
         </div>
       </header>
 
+<<<<<<< Updated upstream
 
       {/* MAIN */}
         <main style={{ 
@@ -221,13 +239,31 @@ export default function InventoryPageUI({
             </div>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
               <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '2px solid #f2d8c3', fontSize: 14, width: 240, outline: 'none', color: '#8A7E72', backgroundColor: '#FFFFFF' }} />
+=======
+      {/* MAIN */}
+      <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
+        
+        {/* LEFT: Table */}
+        <section style={{ border: '1px solid #D3D3D3', borderRadius: 12, background: '#F1F1F1', padding: 24, boxShadow: '0 4px 40px #ccbfbf', display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <h2 style={{ fontSize: 28, fontWeight: 700, color: '#000000', margin: 0 }}>Inventory</h2>
+              <p style={{ fontSize: 12, color: '#8A7E72', margin: 0 }}>Manage your stock levels and ingredient details</p>
+            </div>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '1px solid #D3D3D3', fontSize: 14, width: 240, outline: 'none', color: '#1E1E1E', backgroundColor: '#FFFFFF' }} />
+>>>>>>> Stashed changes
               <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer' }}>
                 <img src={searchIcon} alt="" style={{ width: 20, height: 20 }} />
               </button>
             </div>
           </div>
 
+<<<<<<< Updated upstream
           <div style={{ flexGrow: 1, overflowY: 'auto', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', padding: 0, boxSizing: 'border-box',}}>
+=======
+          <div style={{ flexGrow: 1, overflowY: 'auto', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3D3D3', maxHeight: 520 }}>
+>>>>>>> Stashed changes
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'center', fontSize: 14 }}>
               <thead>
                 <tr>
@@ -240,7 +276,11 @@ export default function InventoryPageUI({
                     ['stock_status',     'Stock Status'],
                     ['expiry_date',      'Expiration Date'],
                   ] as [keyof Ingredient, string][]).map(([col, label]) => (
+<<<<<<< Updated upstream
                     <th key={`${col}`} onClick={() => onSort(col)} style={{ backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px', textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5, borderBottom: '2px solid #f2d8c3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+=======
+                    <th key={`${col}`} onClick={() => onSort(col)} style={{ backgroundColor: '#ffffff', color: '#D1915F', fontWeight: 600, padding: '12px 16px', textTransform: 'uppercase', fontSize: 12, letterSpacing: 0.5, borderBottom: '1px solid #D3D3D3', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap' }}>
+>>>>>>> Stashed changes
                       {label}{renderSortIcon(col)}
                     </th>
                   ))}
@@ -275,10 +315,13 @@ export default function InventoryPageUI({
                         };
 
                         const textColor = (actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected) ? '#FFFFFF' : '#000000';
+<<<<<<< Updated upstream
                         
                         // FIXED: Re-mapped evaluation checks to handle red indicators for both low/empty labels
                         const normalizedStatus = (item.stock_status || '').toUpperCase();
                         const isDangerAlert = normalizedStatus === 'LOW STOCK' || normalizedStatus === 'NO STOCK' || normalizedStatus === 'OUT OF STOCK';
+=======
+>>>>>>> Stashed changes
 
                         return (
                           <tr key={item.ingredient_id} onClick={handleRowClick} className={trClass} style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
@@ -288,6 +331,7 @@ export default function InventoryPageUI({
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
                             <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
+<<<<<<< Updated upstream
                               <span style={{ 
                                 fontWeight: 700, 
                                 fontSize: 12, 
@@ -296,6 +340,10 @@ export default function InventoryPageUI({
                                   : isDangerAlert ? '#C62828' : '#09AA29' 
                               }}>
                                 {isDangerAlert ? '🔴 ' : '🟢 '}
+=======
+                              <span style={{ fontWeight: 700, fontSize: 12, color: ((actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected)) ? '#FFFFFF' : (item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '#C62828' : '#09AA29') }}>
+                                {item.stock_status === 'LOW STOCK' || item.stock_status === 'Low Stock' ? '🔴 ' : '🟢 '}
+>>>>>>> Stashed changes
                                 {item.stock_status}
                               </span>
                             </td>
@@ -321,6 +369,7 @@ export default function InventoryPageUI({
         </section>
 
         {/* RIGHT: Actions Panel / Notifications Panel */}
+<<<<<<< Updated upstream
         <aside style={{ 
           display: 'flex', 
           flexDirection: 'column', 
@@ -331,6 +380,10 @@ export default function InventoryPageUI({
           position: 'relative'
         }}>          
         <h2 style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px', borderBottom: '2px solid #f2d8c3', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>
+=======
+        <aside style={{ display: 'flex', flexDirection: 'column', background: '#F1F1F1', border: '1px solid #D1915F', borderRadius: 12, boxShadow: '0 4px 40px #ccbfbf', overflow: 'hidden', position: 'relative', paddingBottom: 80 }}>
+          <h2 style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px', borderBottom: '1px solid #D1915F', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>
+>>>>>>> Stashed changes
             {isAdmin ? 'Actions' : 'Notifications'}
           </h2>
 
@@ -341,6 +394,7 @@ export default function InventoryPageUI({
               <>
                 {actionView === 'menu' && (
                   <>
+<<<<<<< Updated upstream
                     <button onClick={() => openView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', gap: 12, padding: '20px', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', cursor: 'pointer', boxSizing: 'border-box' }}>
                       <div style={{ width: 40, height: 40, borderRadius: '100%', border: '2px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="" style={{ width: 22, height: 22 }} /></div>
                       <span style={{ fontSize: 18, fontWeight: 800, color: '#D1915F' }}>ADD</span>
@@ -356,6 +410,23 @@ export default function InventoryPageUI({
 
                     <hr style={{ border: 'none', borderTop: '3px solid #f2d8c3', margin: '12px 0' }} />
                     <h3 style={{ fontSize: 14, fontWeight: 700, color: '#D1915F', margin: '0 0 4px 0', textTransform: 'uppercase', textAlign: 'left' }}>
+=======
+                    <button onClick={() => openView('add')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={addIcon} alt="" style={{ width: 34, height: 34 }} /></div>
+                      <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F' }}>ADD</span>
+                    </button>
+                    <button onClick={() => openView('edit')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D1915F', cursor: 'pointer', boxSizing: 'border-box' }}>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #D1915F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={editIcon} alt="" style={{ width: 34, height: 34 }} /></div>
+                      <span style={{ fontSize: 25, fontWeight: 800, color: '#D1915F' }}>EDIT</span>
+                    </button>
+                    <button onClick={() => openView('delete')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '1px solid #FF2C2C', cursor: 'pointer', boxSizing: 'border-box' }}>
+                      <div style={{ width: 55, height: 55, borderRadius: '50%', border: '3px solid #FF2C2C', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><img src={deleteIcon} alt="" style={{ width: 34, height: 34 }} /></div>
+                      <span style={{ fontSize: 25, fontWeight: 800, color: '#FF4A4A' }}>DELETE</span>
+                    </button>
+
+                    <hr style={{ border: 'none', borderTop: '1px solid #D3C9BE', margin: '12px 0' }} />
+                    <h3 style={{ fontSize: 14, fontWeight: 700, color: '#8A7E72', margin: '0 0 4px 0', textTransform: 'uppercase', textAlign: 'left' }}>
+>>>>>>> Stashed changes
                       Alerts Overview
                     </h3>
                     <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '200px', paddingRight: 4 }}>
@@ -366,18 +437,27 @@ export default function InventoryPageUI({
 
                 {actionView === 'add' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+<<<<<<< Updated upstream
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F' }}> ADD INGREDIENT</h3>
                     <button onClick={goBackToMenu} style={{ background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
                   </div>                    
+=======
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#D1915F', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
+>>>>>>> Stashed changes
                     {formError && (
                       <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
                         <AlertTriangle style={{ width: 14, height: 14 }} />
                         <span style={{ fontWeight: 600 }}>{formError}</span>
                       </div>
                     )}
+<<<<<<< Updated upstream
                     <form onSubmit={async (e) => { e.preventDefault(); const ok = await onFormSubmit(e); if (ok) goBackToMenu(); }} 
                         style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>                      <div>
+=======
+                    <form onSubmit={async (e) => { e.preventDefault(); const ok = await onFormSubmit(e); if (ok) goBackToMenu(); }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                      <div>
+>>>>>>> Stashed changes
                         <label style={labelStyle}>Item Name</label>
                         <input type="text" value={formName} onChange={e => setFormName(e.target.value)} placeholder="e.g. Espresso Beans" style={inputStyle} />
                       </div>
@@ -413,7 +493,11 @@ export default function InventoryPageUI({
                             }} 
                             style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                           />
+<<<<<<< Updated upstream
                           <label htmlFor="hasExpiryCheck" style={{ fontSize: 13, fontWeight: 600, color: '#8A7E72', cursor: 'pointer' }}>
+=======
+                          <label htmlFor="hasExpiryCheck" style={{ fontSize: 13, fontWeight: 600, color: '#1E1E1E', cursor: 'pointer' }}>
+>>>>>>> Stashed changes
                             This item has an expiration date
                           </label>
                         </div>
@@ -435,12 +519,19 @@ export default function InventoryPageUI({
                 )}
 
                 {actionView === 'edit' && (
+<<<<<<< Updated upstream
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 3, height: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F' }}>EDIT INGREDIENT</h3>
                     <button onClick={goBackToMenu} style={{ background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 13 }}>Cancel</button>
                   </div>                    
                     <div>
+=======
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 16, height: '100%' }}>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
+                    <div>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E' }}>EDIT INGREDIENT</h3>
+>>>>>>> Stashed changes
                       <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>{selectedIngredient ? 'All fields must be filled up with complete and correct information.' : 'Select the ingredient you need to edit on the table.'}</p>
                     </div>
                     {editError && (
@@ -479,7 +570,11 @@ export default function InventoryPageUI({
                               onChange={(e) => setEditExpiryDate(e.target.checked ? '' : '9999-12-31')} 
                               style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                             />
+<<<<<<< Updated upstream
                             <label htmlFor="editExpiryCheck" style={{ fontSize: 13, fontWeight: 600, color: '#8A7E72', cursor: 'pointer' }}>
+=======
+                            <label htmlFor="editExpiryCheck" style={{ fontSize: 13, fontWeight: 600, color: '#1E1E1E', cursor: 'pointer' }}>
+>>>>>>> Stashed changes
                               This item has an expiration date
                             </label>
                           </div>
@@ -499,7 +594,11 @@ export default function InventoryPageUI({
                         </div>
                       </form>
                     ) : (
+<<<<<<< Updated upstream
                       <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #f2d8c3', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
+=======
+                      <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
+>>>>>>> Stashed changes
                         No row selected. Please select an item on the list table to view details.
                       </div>
                     )}
@@ -507,6 +606,7 @@ export default function InventoryPageUI({
                 )}
               
                 {actionView === 'delete' && (
+<<<<<<< Updated upstream
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5, height: '100%' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F' }}>DELETE INGREDIENT</h3>
@@ -514,6 +614,13 @@ export default function InventoryPageUI({
                   </div>                    
         <div>
                   <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>Click rows on the table to select. Click again to deselect.</p>
+=======
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12, height: '100%' }}>
+                    <button onClick={goBackToMenu} style={{ alignSelf: 'flex-start', background: 'transparent', border: 'none', color: '#8A7E72', fontWeight: 600, cursor: 'pointer', fontSize: 14 }}>← Back to Dashboard</button>
+                    <div>
+                      <h3 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 700, color: '#1E1E1E', textTransform: 'uppercase' }}>DELETE INGREDIENT</h3>
+                      <p style={{ margin: 0, fontSize: 11, color: '#8A7E72' }}>Click rows on the table to select. Click again to deselect.</p>
+>>>>>>> Stashed changes
                     </div>
                     {deleteError && (
                       <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: '10px 12px', borderRadius: 10, display: 'flex', gap: 8 }}>
@@ -538,7 +645,12 @@ export default function InventoryPageUI({
                         ))}
                       </div>
                     ) : (
+<<<<<<< Updated upstream
                   <div style={{ height: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #f2d8c3', borderRadius: 12, padding: 20, marginBottom: '60px', textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>                        No rows selected. Click any ingredient row on the table.
+=======
+                      <div style={{ flexGrow: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px dashed #D3C9BE', borderRadius: 12, padding: 20, textAlign: 'center', color: '#8A7E72', fontSize: 13, fontStyle: 'italic' }}>
+                        No rows selected. Click any ingredient row on the table.
+>>>>>>> Stashed changes
                       </div>
                     )}
                     <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0 }}>
@@ -560,6 +672,7 @@ export default function InventoryPageUI({
       </main>
 
       {/* FOOTER NAV */}
+<<<<<<< Updated upstream
       <nav style={{ background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', marginTop: 16 }}>
         {[
           { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
@@ -568,6 +681,16 @@ export default function InventoryPageUI({
           { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
         ].map(({ label, icon, path, active }) => (
           <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '2px solid #f2d8c3' : '2px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 1px 4px #f2d8c3' : 'none' }}>
+=======
+      <nav style={{ background: '#f1f1f1', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, boxShadow: '0 4px 40px #ccbfbf', width: '100%', boxSizing: 'border-box', border: '1px solid #D3C9BE', marginTop: 16 }}>
+        {[
+          { label: 'HOME',           icon: homeIcon,       path: '/home',      active: false },
+          { label: 'POINT OF SALES', icon: posIcon,        path: '/pos',       active: false },
+          { label: 'INVENTORY',      icon: inventoryIcon,  path: '/inventory', active: true  },
+          { label: 'INSIGHTS',       icon: insightsIcon,   path: '/insights',  active: false },
+        ].map(({ label, icon, path, active }) => (
+          <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '1px solid #D3C9BE' : '1px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 2px 4px #ccbfbf' : 'none' }}>
+>>>>>>> Stashed changes
             <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} />
             <span>{label}</span>
           </button>
