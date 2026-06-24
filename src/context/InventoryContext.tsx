@@ -1,5 +1,4 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-<<<<<<< Updated upstream
 import type { Ingredient } from '../types/InventoryItem';
 import { InventoryService, type NewIngredient } from '../services/InventoryService';
 
@@ -25,72 +24,13 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
 
-=======
-import type { Ingredient} from '../types/InventoryItem';
-import { InventoryService, type NewIngredient } from '../services/InventoryService';
-
-
-/**
- * Defines the blueprint for your global state, outlining the variables (ingredients) 
- * and functions (addIngredient, etc.) that will be accessible to your app.
- */
-interface InventoryContextType {
-
-  ingredients: Ingredient[];
-
-  fetchIngredients: () => Promise<void>;
-
-  addIngredient: (
-    ingredient: NewIngredient
-  ) => Promise<boolean>;
-
-  updateIngredient: (
-    ingredientId: number,
-    ingredient: Partial<Ingredient>
-  ) => Promise<boolean>;
-
-  deleteIngredient: (
-    ingredientId: number
-  ) => Promise<boolean>;
-}
-
-//Initializes the empty context bucket that React will use to hold the data.
-const InventoryContext =
-  createContext<
-    InventoryContextType | undefined
-  >(undefined);
-
-  // This is a wrapper component. Any components placed inside it (children) will have access to the inventory data.
-export function InventoryProvider({
-  children
-}: {
-  children: ReactNode;
-}) {
-
-  // Creates the active state variable that holds the list of ingredients currently loaded in the app.
-  const [ingredients, setIngredients] =
-    useState<Ingredient[]>([]);
-
-  /**
-   * React hook that automatically tells the app to fetch the ingredient list from the
-   * database the very first time this provider loads.
-   */
->>>>>>> Stashed changes
   useEffect(() => {
     fetchIngredients();
   }, []);
 
   async function fetchIngredients() {
-<<<<<<< Updated upstream
     setIsLoading(true); 
-=======
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
     const { data, error } = await InventoryService.getAllIngredients();
-=======
-
-    const {data, error } = await InventoryService.getAllIngredients();
->>>>>>> Stashed changes
 
     if (error) {
       console.error(error);
@@ -102,14 +42,7 @@ export function InventoryProvider({
     setIsLoading(false);
   }
 
-<<<<<<< Updated upstream
   async function addIngredient(ingredient: NewIngredient) {
-=======
-  async function addIngredient(
-    ingredient: NewIngredient
-  ) {
-
->>>>>>> Stashed changes
     const { error } = await InventoryService.addIngredient(ingredient);
 
     if (error) {
@@ -118,29 +51,11 @@ export function InventoryProvider({
     }
 
     await fetchIngredients();
-<<<<<<< Updated upstream
     return true;
   }
 
   async function updateIngredient(ingredientId: number, ingredient: Partial<Ingredient>) {
     const { error } = await InventoryService.updateIngredient(ingredientId, ingredient);
-=======
-
-    return true;
-  }
-
-  async function updateIngredient(
-    ingredientId: number,
-    ingredient: Partial<Ingredient>
-  ) {
-
-    const { error } =
-      await InventoryService
-        .updateIngredient(
-          ingredientId,
-          ingredient
-        );
->>>>>>> Stashed changes
 
     if (error) {
       console.error(error);
@@ -148,27 +63,11 @@ export function InventoryProvider({
     }
 
     await fetchIngredients();
-<<<<<<< Updated upstream
     return true;
   }
 
   async function deleteIngredient(ingredientId: number) {
     const { error } = await InventoryService.deleteIngredient(ingredientId);
-=======
-
-    return true;
-  }
-
-  async function deleteIngredient(
-    ingredientId: number
-  ) {
-
-    const { error } =
-      await InventoryService
-        .deleteIngredient(
-          ingredientId
-        );
->>>>>>> Stashed changes
 
     if (error) {
       console.error(error);
@@ -176,10 +75,6 @@ export function InventoryProvider({
     }
 
     await fetchIngredients();
-<<<<<<< Updated upstream
-=======
-
->>>>>>> Stashed changes
     return true;
   }
 
@@ -188,26 +83,12 @@ export function InventoryProvider({
     <InventoryContext.Provider
       value={{
         ingredients,
-<<<<<<< Updated upstream
         isLoading,
-=======
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
         fetchIngredients,
         addIngredient,
         updateIngredient,
         deleteIngredient,
         refreshInventory: fetchIngredients 
-=======
-
-        fetchIngredients,
-
-        addIngredient,
-
-        updateIngredient,
-
-        deleteIngredient
->>>>>>> Stashed changes
       }}
     >
       {children}
@@ -216,21 +97,10 @@ export function InventoryProvider({
 }
 
 export function useInventory() {
-<<<<<<< Updated upstream
   const context = useContext(InventoryContext);
 
   if (!context) {
     throw new Error('useInventory must be used within InventoryProvider');
-=======
-
-  const context =
-    useContext(InventoryContext);
-
-  if (!context) {
-    throw new Error(
-      'useInventory must be used within InventoryProvider'
-    );
->>>>>>> Stashed changes
   }
 
   return context;
