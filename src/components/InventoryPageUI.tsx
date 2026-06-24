@@ -158,6 +158,17 @@ export default function InventoryPageUI({
   // Track if the loaded edit asset is configured as non-perishable
   const editItemHasNoExpiry = editCategory === 'PACKAGING' || editExpiryDate === '9999-12-31';
 
+  const getStatusStyles = (status: string) => {
+    const s = (status || '').toUpperCase();
+    if (s === 'NO STOCK' || s === 'OUT OF STOCK') {
+      return { color: '#EF4444', border: '1px solid #EF4444', dot: '#EF4444' };
+    } else if (s === 'LOW STOCK') {
+      return { color: '#F59E0B', border: '1px solid #FDE68A', dot: '#F59E0B' };
+    } else {
+      return { color: '#10B981', border: '1px solid #A7F3D0', dot: '#10B981' };
+    }
+  };
+  
   return (
     <div style={{
       minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif",
@@ -276,9 +287,8 @@ export default function InventoryPageUI({
 
                         const textColor = (actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected) ? '#FFFFFF' : '#000000';
                         
-                        // FIXED: Re-mapped evaluation checks to handle red indicators for both low/empty labels
-                        const normalizedStatus = (item.stock_status || '').toUpperCase();
-                        const isDangerAlert = normalizedStatus === 'LOW STOCK' || normalizedStatus === 'NO STOCK' || normalizedStatus === 'OUT OF STOCK';
+                        // 🌟 Setup the Pill Styling for this specific row
+                        const pillStyle = getStatusStyles(item.stock_status || 'IN STOCK');
 
                         return (
                           <tr key={item.ingredient_id} onClick={handleRowClick} className={trClass} style={{ cursor: isAdmin ? 'pointer' : 'default' }}>
@@ -287,18 +297,31 @@ export default function InventoryPageUI({
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.stock_quantity}</td>
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.measurement_unit}</td>
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>{item.threshold} {item.measurement_unit}</td>
+                            
+                            {/* 🌟 The new visually consistent Status Pill Design */}
                             <td style={{ padding: '14px 16px', borderBottom: '1px solid #F1F1F1' }}>
-                              <span style={{ 
-                                fontWeight: 700, 
-                                fontSize: 12, 
-                                color: ((actionView === 'delete' && isDelSelected) || (actionView === 'edit' && isEditSelected)) 
-                                  ? '#FFFFFF' 
-                                  : isDangerAlert ? '#C62828' : '#09AA29' 
-                              }}>
-                                {isDangerAlert ? '🔴 ' : '🟢 '}
-                                {item.stock_status}
-                              </span>
+                              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                                <div style={{ 
+                                  display: 'flex', 
+                                  alignItems: 'center', 
+                                  gap: 6, 
+                                  padding: '6px 12px', 
+                                  borderRadius: 20, 
+                                  border: pillStyle.border, 
+                                  color: pillStyle.color, 
+                                  fontWeight: 800, 
+                                  fontSize: 11, 
+                                  backgroundColor: '#FFFFFF', 
+                                  boxShadow: '0 2px 4px rgba(0,0,0,0.02)',
+                                  textTransform: 'uppercase',
+                                  whiteSpace: 'nowrap'
+                                }}>
+                                  <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: pillStyle.dot }}></div>
+                                  {item.stock_status || 'IN STOCK'}
+                                </div>
+                              </div>
                             </td>
+
                             <td style={{ padding: '14px 16px', color: textColor, borderBottom: '1px solid #F1F1F1' }}>
                               {item.expiry_date === '9999-12-31' ? 'N/A' : (item.expiry_date || 'N/A')}
                             </td>
