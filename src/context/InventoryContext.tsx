@@ -5,6 +5,7 @@ import { InventoryService, type NewIngredient } from '../services/InventoryServi
 
 interface InventoryContextType {
   ingredients: Ingredient[];
+  isLoading: boolean;
   fetchIngredients: () => Promise<void>;
   addIngredient: (ingredient: NewIngredient) => Promise<boolean>;
   updateIngredient: (ingredientId: number, ingredient: Partial<Ingredient>) => Promise<boolean>;
@@ -19,6 +20,7 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 export function InventoryProvider({ children }: { children: ReactNode }) {
 
   // Creates the active state variable that holds the list of ingredients currently loaded in the app.
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
 
 
@@ -27,14 +29,17 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
   }, []);
 
   async function fetchIngredients() {
+    setIsLoading(true); 
     const { data, error } = await InventoryService.getAllIngredients();
 
     if (error) {
       console.error(error);
+      setIsLoading(false);
       return;
     }
 
     setIngredients(data || []);
+    setIsLoading(false);
   }
 
   async function addIngredient(ingredient: NewIngredient) {
@@ -78,6 +83,7 @@ export function InventoryProvider({ children }: { children: ReactNode }) {
     <InventoryContext.Provider
       value={{
         ingredients,
+        isLoading,
         fetchIngredients,
         addIngredient,
         updateIngredient,

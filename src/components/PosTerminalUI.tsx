@@ -92,7 +92,8 @@ export default function PosTerminalUI({
   setActivityFilter,
 }: PosTerminalUIProps) {
   const navigate = useNavigate();
-  const { ingredients } = useInventory();
+  const { ingredients, refreshInventory } = useInventory();
+
   const isAdmin = userRole?.toLowerCase() === 'admin';
 
   const categories = ['ALL', 'CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES', 'EXTRAS'];
@@ -586,9 +587,20 @@ export default function PosTerminalUI({
 
           <aside style={{ display: 'flex', flexDirection: 'column', width: '360px', minWidth: '360px', boxSizing: 'border-box', height: '100%' }}>
             {userRole === 'admin' ? (
-              <AdjustmentRequestReviewPanel requests={localAdjustmentRequests} userId={activeUserId} onReviewed={fetchAdjustmentRequests} />
+              <AdjustmentRequestReviewPanel 
+                requests={localAdjustmentRequests} 
+                userId={activeUserId} 
+                onReviewed={async () => {
+                  await fetchAdjustmentRequests(); // 1. Refresh the pending list
+                  await refreshInventory();        // 2. 🌟 INSTANTLY REFRESH THE INVENTORY!
+                }} 
+              />
             ) : (
-              <IngredientAdjustmentForm ingredients={ingredients} userId={activeUserId} onSuccess={handleNewRequestLogged} /> 
+              <IngredientAdjustmentForm 
+                ingredients={ingredients} 
+                userId={activeUserId} 
+                onSuccess={handleNewRequestLogged} 
+              /> 
             )}
           </aside>
         </main>
