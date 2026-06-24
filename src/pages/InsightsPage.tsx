@@ -1,43 +1,90 @@
+import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import InsightsPageUI from '../components/InsightsPageUI';
 
 export default function InsightsPage() {
   const { user } = useAuth();
-  const navigate = useNavigate();
-  const isAdmin = user?.role === 'admin';
+  const [activeTab, setActiveTab] = useState<string>('REPORTS & ANALYTICS');
 
   return (
-    <div className="min-h-screen bg-stone-100 p-8">
-      <div className="max-w-4xl mx-auto bg-white p-8 rounded-2xl shadow-sm border border-stone-200">
-        <button onClick={() => navigate('/home')} className="flex items-center space-x-1.5 text-stone-500 hover:text-stone-800 font-medium text-sm mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> <span>Back to Home</span>
-        </button>
+    <InsightsPageUI
+      userRole={user?.role}
+      currentTab={activeTab}
+      onTabChange={setActiveTab}
+      
+      leftCardsSlot={
+        activeTab === 'REPORTS & ANALYTICS' ? (
+          <>
+            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>TOTAL INGREDIENTS USED</span>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
+            </div>
 
-        <div className="flex justify-between items-center border-b border-stone-200 pb-4 mb-6">
-          <h1 className="text-3xl font-bold text-stone-800">📊 Business Performance Insights</h1>
-          {!isAdmin && (
-            <span className="text-xs bg-stone-100 text-stone-400 border border-stone-200 px-3 py-1.5 rounded-full font-medium">
-              👁️ Read-Only Mode
-            </span>
-          )}
-        </div>
+            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>MOST CONSUMED</span>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
+            </div>
 
-        {/* Secret Admin panel component */}
-        {isAdmin ? (
-          <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-xl mb-6 text-sm font-medium">
-            🔑 Admin control unlocked: You have access to Export PDF Data sheets and clear shift logs.
+            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>LOW STOCK ITEMS</span>
+              <div style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
+            </div>
+          </>
+        ) : (
+          <>
+            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>FORECAST PERIOD</span>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
+            </div>
+
+            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>PREDICTED ORDERS</span>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
+            </div>
+
+            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
+              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>INGREDIENTS TO ORDER</span>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
+            </div>
+          </>
+        )
+      }
+
+      mainContentSlot={
+        activeTab === 'REPORTS & ANALYTICS' ? (
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E1E1E' }}>RESTOCK LIST</h3>
+              
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                {user?.role === 'admin' && (
+                  <div style={{ display: 'flex', alignItems: 'center' }}></div>
+                )}
+                
+                <button style={{ padding: '6px 12px', background: '#FFFFFF', border: '1px solid #f2d8c3', color: '#D1915F', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  🖨️ EXPORT REPORT
+                </button>
+              </div>
+            </div>
+
+            <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+            </div>
           </div>
         ) : (
-          <div className="bg-amber-50 border border-amber-200 text-amber-800 p-4 rounded-xl mb-6 text-sm">
-            ⚠️ Note: Modifications and print distributions are restricted. Contact a manager to execute updates.
-          </div>
-        )}
+          <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E1E1E' }}>PREDICTED NEEDS</h3>
+              
+              <button style={{ padding: '6px 12px', background: '#FFFFFF', border: '1px solid #f2d8c3', color: '#D1915F', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                🖨️ EXPORT FORECAST
+              </button>
+            </div>
 
-        <div className="border border-stone-200 rounded-xl overflow-hidden bg-stone-50 p-6 text-center text-stone-400">
-          [Analytics, charts, and metrics output layouts populate here]
-        </div>
-      </div>
-    </div>
+            <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+            </div>
+          </div>
+        )
+      }
+    />
   );
 }
