@@ -12,7 +12,6 @@ export default function NotificationPanel({ ingredients }: NotificationPanelProp
     return status.includes('low stock') || status.includes('no stock');
   });
 
-<<<<<<< Updated upstream
     return (
       <div 
         style={{ 
@@ -25,10 +24,6 @@ export default function NotificationPanel({ ingredients }: NotificationPanelProp
           paddingRight: 4 
         }}
       >
-=======
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
->>>>>>> Stashed changes
 
       {alertItems.length === 0 ? (
         <div style={{ padding: 16, textAlign: 'center', color: '#09AA29', fontWeight: 600, fontSize: 13, background: '#E8F5E9', borderRadius: 10 }}>

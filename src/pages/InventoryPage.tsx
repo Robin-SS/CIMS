@@ -1,8 +1,4 @@
-<<<<<<< Updated upstream
 import { useState, useEffect } from 'react';
-=======
-import { useState } from 'react';
->>>>>>> Stashed changes
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 import type { Ingredient } from '../types/InventoryItem';
@@ -18,11 +14,7 @@ type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
 export default function InventoryPage() {
   const { user } = useAuth();
-<<<<<<< Updated upstream
   const { ingredients, isLoading, refreshInventory } = useInventory();
-=======
-  const { ingredients } = useInventory();
->>>>>>> Stashed changes
   
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [actionView, setActionView] = useState<ActionView>('menu');
@@ -30,7 +22,6 @@ export default function InventoryPage() {
   // Selection States
   const [selectedIngredient, setSelectedIngredient] = useState<Ingredient | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
-<<<<<<< Updated upstream
 
   useEffect(() => {
     refreshInventory();
@@ -95,60 +86,6 @@ export default function InventoryPage() {
                       onToggleSelect={handleToggleSelect}
                       onClearSelection={handleClearSelection}
 
-=======
-
-  const handleToggleSelect = (item: Ingredient) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(item.ingredient_id)) {
-        next.delete(item.ingredient_id);
-      } else {
-        next.add(item.ingredient_id);
-      }
-      return next;
-    });
-  };
-
-  const handleClearSelection = () => {
-    setSelectedIds(new Set());
-  };
-
-  return (
-    <IngredientsTable ingredients={ingredients}>
-      {({ sortedIngredients, sortColumn, sortDirection, handleSort }) => (
-        <EditIngredientForm 
-          selectedIngredient={selectedIngredient} 
-          onSuccess={() => setSelectedIngredient(null)}
-        >
-          {(editProps) => (
-            <DeleteIngredientForm
-              selectedIds={selectedIds}
-              ingredients={ingredients}
-              onSuccess={handleClearSelection}
-            >
-              {(deleteProps) => (
-                <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
-                  {(addProps) => (
-                    <InventoryPageUI
-                      userRole={user?.role}
-                      isModalOpen={isModalOpen}
-                      setIsModalOpen={setIsModalOpen}
-                      sortedIngredients={sortedIngredients}
-                      sortColumn={sortColumn}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                      
-                      actionView={actionView}
-                      setActionView={setActionView}
-
-                      // Selection Properties
-                      selectedIngredient={selectedIngredient}
-                      onSelectIngredient={setSelectedIngredient}
-                      selectedIds={selectedIds}
-                      onToggleSelect={handleToggleSelect}
-                      onClearSelection={handleClearSelection}
-
->>>>>>> Stashed changes
                       // Add Form Properties
                       formError={addProps.formError}
                       formName={addProps.formName}

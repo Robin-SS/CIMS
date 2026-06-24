@@ -1,7 +1,6 @@
-import React from 'react';
 import { AlertCircle } from 'lucide-react';
 import cafeLogo from '../assets/cafeLogo.png';
-import loginBG from '../assets/loginBG.png';
+import loginBG from '../assets/loginBG.png'
 
 interface LoginUIProps {
   onSubmit: (e: React.FormEvent) => void;
@@ -16,6 +15,7 @@ interface LoginUIProps {
 export default function LoginUI({ 
   onSubmit, error, isSubmitting, username, setUsername, password, setPassword 
 }: LoginUIProps) {
+  
   return (
     <div
       style={{
@@ -42,193 +42,170 @@ export default function LoginUI({
         overflow: 'hidden',
       }}
     >
-      {/* White Card Layout */}
+      {/* White Card */}
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '32px',
-          padding: '50px 60px',
+          borderRadius: '36px',
+          padding: '56px 60px',
           width: '100%',
-          maxWidth: '840px', 
-          display: 'grid',
-          gridTemplateColumns: '1.1fr 1fr', 
+          maxWidth: '580px',
+          boxShadow: '0 24px 80px rgba(0,0,0,0.22)',
+          display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          gap: '40px',
+          gap: '24px',
           position: 'relative',
           zIndex: 10,
-          boxShadow: '0px 8px 24px #00000026',
         }}
       >
-        {/* Left Column: Branding Container */}
+        {/* Logo */}
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '16px',
+          width: '100%',
+          marginBottom: '8px',
+        }}
+      >
+        {/* Coffee Image */}
+        <img
+          src={cafeLogo}
+          alt="Tita's Cafe Logo"
+          style={{
+            width: '140px',
+            height: '140px',
+            objectFit: 'contain',
+            filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.25))',
+          }}
+        />
+
+        {/* Text */}
         <div
           style={{
-            backgroundColor: '#faebe0',
-            border: '2px solid #f2d8c3',
-            borderRadius: '24px',
-            padding: '54px 14px',
             display: 'flex',
-            alignItems: 'center',
+            flexDirection: 'column',
             justifyContent: 'center',
-            gap: '0px', 
-            width: '100%',
-            boxSizing: 'border-box',
+            lineHeight: 1,
+            color: '#000',
+            fontFamily: '"Liu Jian Mao Cao", cursive',
+            textShadow: '0px 4px 4px rgba(0,0,0,0.25)',
           }}
         >
-          {/* Coffee Image */}
-          <img
-            src={cafeLogo}
-            alt="Tita's Cafe Logo"
+          <span
             style={{
-              width: '160px',
-              height: '160px',
-              objectFit: 'contain',
-              filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.15))',
-              position: 'relative',
-              zIndex: 1,
-            }}
-          />
-
-          {/* Typography */}
-          <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              lineHeight: '0.85', 
-              color: '#333333',
-              fontFamily: '"Liu Jian Mao Cao", cursive',
-              fontSize: '74px',
-              margin: 0,
-              marginLeft: '-1px', 
-              padding: 0,
-              position: 'relative',
-              zIndex: 2,
-              WebkitTextStroke: '1.5px #333333', // Makes the brush strokes thicker
+              fontSize: '64px',
             }}
           >
-            <span>Tita's</span>
-            <span style={{ paddingLeft: '10px' }}>cafe</span>
-          </div>
+            Tita's
+          </span>
+
+          <span
+            style={{
+              fontSize: '64px',
+              marginTop: '-6px',
+            }}
+          >
+            Cafe
+          </span>
         </div>
+      </div>
+        {/* Good Day */}
+        
+        <p style={{ fontSize: '40px', fontWeight: 800, color: '#1a1a1a', margin: 0 }}>Good Day!</p>
 
-        {/* Right Column: Form Fields & Header Elements */}
-        <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          
-          {/* "Good Day!" pill badge */}
-            <div 
-              style={{ 
-                display: 'flex', 
-                justifyContent: 'flex-end', 
-                width: '100%', 
-                marginBottom: '2px',
-                boxSizing: 'border-box'
-              }}
-            >
-              <span style={{
-                border: '2px solid #f2d8c3',
-                color: '#D1915F',
-                borderRadius: '20px',
-                padding: '4px 152px',
-                fontSize: '13px',
-                fontWeight: '600',
-                fontFamily: 'Inter, sans-serif',
-                alignItems: 'center',
-              }}>
-                GOOD DAY!
-              </span>
+        {/* Form */}
+        <form onSubmit={onSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+
+          {error && (
+            <div style={{
+              backgroundColor: '#fff1f0',
+              border: '1px solid #fca5a5',
+              borderRadius: '14px',
+              padding: '14px 18px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              color: '#dc2626',
+              fontSize: '16px',
+            }}>
+              <AlertCircle size={20} style={{ flexShrink: 0 }} />
+              <span>{error}</span>
             </div>
+          )}
 
-          <form onSubmit={onSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            
-            {error && (
-              <div style={{
-                backgroundColor: '#fff1f0',
-                border: '1px solid #fca5a5',
-                borderRadius: '14px',
-                padding: '12px 16px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                color: '#dc2626',
-                fontSize: '14px',
-              }}>
-                <AlertCircle size={18} style={{ flexShrink: 0 }} />
-                <span>{error}</span>
-              </div>
-            )}
-
-            {/* Role Input Container */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#D1915F' }}>Role</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="e.g. admin or staff"
-                disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  backgroundColor: '#faebe0',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  fontSize: '15px',
-                  color: '#8A7E72',
-                  border: '2px solid #f2d8c3',                  
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {/* Password Input Container */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontFamily: 'Inter, sans-serif', fontSize: '15px', fontWeight: 700, color: '#D1915F' }}>Password</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                disabled={isSubmitting}
-                style={{
-                  width: '100%',
-                  backgroundColor: '#faebe0',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  fontSize: '15px',
-                  color: '#8A7E72',
-                  border: '2px solid #f2d8c3',                
-                  outline: 'none',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-
-            {/* Sign In Button */}
-            <button
-              type="submit"
+          {/* Role */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label style={{ fontSize: '19px', fontWeight: 700, color: '#1a1a1a' }}>Role</label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="e.g. admin or staff"
               disabled={isSubmitting}
               style={{
                 width: '100%',
-                backgroundColor: '#D1915F',
-                color: '#ffffff',
-                padding: '14px',
-                borderRadius: '25px',
-                fontSize: '14px',
-                fontWeight: '700',
+                backgroundColor: '#f0e7df',
+                padding: '16px 20px',
+                borderRadius: '18px',
+                fontSize: '17px',
+                color: '#5a483e',
                 border: 'none',
-                cursor: isSubmitting ? 'not-allowed' : 'pointer',
-                marginTop: '12px',
-                transition: 'background-color 0.2s',
+                outline: 'none',
+                boxSizing: 'border-box',
               }}
-              onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#b87b4c')}
-              onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#D1915F')}
-            >
-              {isSubmitting ? 'Verifying...' : 'Sign In'}
-            </button>
-          </form>
-        </div>
+            />
+          </div>
 
+          {/* Password */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <label style={{ fontSize: '19px', fontWeight: 700, color: '#1a1a1a' }}>Password</label>
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter your password"
+              disabled={isSubmitting}
+              style={{
+                width: '100%',
+                backgroundColor: '#f0e7df',
+                padding: '16px 20px',
+                borderRadius: '18px',
+                fontSize: '17px',
+                color: '#5a483e',
+                border: 'none',
+                outline: 'none',
+                boxSizing: 'border-box',
+              }}
+            />
+          </div>
+
+          {/* Sign In Button */}
+          <button
+            type="submit"
+            disabled={isSubmitting}
+            style={{
+              width: '100%',
+              backgroundColor: '#c29676',
+              color: '#ffffff',
+              padding: '18px',
+              borderRadius: '999px',
+              fontSize: '18px',
+              fontWeight: 800,
+              letterSpacing: '0.1em',
+              border: 'none',
+              cursor: isSubmitting ? 'not-allowed' : 'pointer',
+              marginTop: '8px',
+              transition: 'background-color 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#a88266')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#c29676')}
+          >
+            {isSubmitting ? 'Verifying...' : 'SIGN IN'}
+          </button>
+        </form>
       </div>
     </div>
   );
