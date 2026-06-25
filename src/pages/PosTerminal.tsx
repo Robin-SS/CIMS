@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useProducts, ProductService } from '../services/ProductService'; 
 import { useActivityLogs, ActivityService } from '../services/ActivityService'; 
@@ -28,13 +28,22 @@ export default function PosTerminal() {
 
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState<boolean>(false);
   
-  // 🌟 NEW state metrics for the secondary confirmation step
+  // State metrics for the secondary confirmation step
   const [showFinalConfirm, setShowFinalConfirm] = useState<boolean>(false);
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState<string>('');
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
 
   const [activityFilter, setActivityFilter] = useState<string>('ALL');
   const { ingredients, refreshInventory } = useInventory(); 
+
+  // ✅ FORCE LIVE STATE SYSTEM RE-SYNC ON TAB / VIEW LIFE CYCLES
+  useEffect(() => {
+    async function syncTerminalContext() {
+      if (typeof refreshInventory === 'function') await refreshInventory();
+      if (typeof refetchProducts === 'function') await refetchProducts();
+    }
+    syncTerminalContext();
+  }, [activeTab]);
 
   const handleProductClick = (product: Product) => {
     if (actionView === 'delete') {
@@ -53,28 +62,50 @@ export default function PosTerminal() {
 
     if (user?.role === 'admin' && actionView === 'menu') return;
 
-    if ((product as any).prod_ingredient && ingredients) {
-      const lowStockIngredientAlerts: string[] = [];
+    const recipes = (product as any).prod_ingredient || [];
+    const prodCategoryUpper = (product.product_category || '').toUpperCase();
 
-      (product as any).prod_ingredient.forEach((recipe: any) => {
+    // 🛑 BLOCK ATTEMPT A: Recipe lines array was completely truncated down by DB cascade rules
+    const isEssentialProductCategory = ['CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES'].includes(prodCategoryUpper);
+    if (recipes.length === 0 && isEssentialProductCategory) {
+      alert(`⚠️ TRANSACTION DENIED\n\n"${product.product_name}" cannot be added to orders. Core food/beverage components are missing or have been deleted from your inventory controls.`);
+      return;
+    }
+
+    if (ingredients) {
+      const stockAlerts: string[] = [];
+      let hasMissingEssentialIngredient = false;
+
+      recipes.forEach((recipe: any) => {
         const match = ingredients.find((ing) => ing.ingredient_id === recipe.ingredient_id);
-        if (match) {
+        
+        // 🛑 BLOCK ATTEMPT B: An existing reference cannot be paired up inside live context arrays
+        if (!match) {
+          const deletedIngredientName = recipe.ingredient_name || `Ingredient ID #${recipe.ingredient_id}`;
+          stockAlerts.push(`• [${deletedIngredientName}]: DELETED FROM THE INVENTORY SYSTEM`);
+          hasMissingEssentialIngredient = true;
+        } else {
           const currentStock = Number(match.stock_quantity);
           const thresholdLimit = Number(match.threshold);
 
           if (currentStock <= 0) {
-            lowStockIngredientAlerts.push(`• ${match.ingredient_name}: OUT OF STOCK (Current: 0)`);
+            stockAlerts.push(`• ${match.ingredient_name}: OUT OF STOCK (Current: 0)`);
           } else if (currentStock <= thresholdLimit) {
-            lowStockIngredientAlerts.push(`• ${match.ingredient_name}: REACHED THRESHOLD (Current: ${currentStock} / Min: ${thresholdLimit})`);
+            stockAlerts.push(`• ${match.ingredient_name}: REACHED THRESHOLD (Current: ${currentStock} / Min: ${thresholdLimit})`);
           }
         }
       });
 
-      if (lowStockIngredientAlerts.length > 0) {
+      if (hasMissingEssentialIngredient) {
+        alert(`⚠️ TRANSACTION DENIED\n\n"${product.product_name}" is locked down because its required components have been missing/removed.`);
+        return;
+      }
+
+      if (stockAlerts.length > 0) {
         alert(
           `⚠️ STOCK WARNING for "${product.product_name}"\n\n` +
-          `The following ingredients are below safe levels:\n` +
-          `${lowStockIngredientAlerts.join('\n')}\n\n` +
+          `The following components are below safe levels:\n` +
+          `${stockAlerts.join('\n')}\n\n` +
           `Click OK to proceed with adding this item to the order.`
         );
       }
@@ -133,13 +164,11 @@ export default function PosTerminal() {
     setPendingPaymentMethod('');
   };
 
-  // 🌟 MODIFIED step 1: Stage payment option and route view to confirmation sub-panel
   const handleSelectPaymentMethod = (paymentMethod: string) => {
     setPendingPaymentMethod(paymentMethod);
     setShowFinalConfirm(true);
   };
 
-  // 🌟 MODIFIED step 2: Executes the transactional queries after confirmation
   const handleConfirmPaymentExecution = async () => {
     if (!user || orderItems.length === 0 || !pendingPaymentMethod) return;
 
@@ -258,14 +287,13 @@ export default function PosTerminal() {
                   />
                 </PosTerminalUI>
 
-                {/* MODIFIED COMPOSABLE MODAL DIALOG CONTAINER */}
+                {/* CHECKOUT SYSTEM DIALOG MODALS */}
                 {isPaymentModalOpen && (
                   <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
                     <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 420, display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif" }}>
                       
                       {!showFinalConfirm ? (
                         <>
-                          {/* STAGE A: SELECT PAYMENT METHOD VIEW (Matching Screenshot 2026-06-24 at 5.02.26 PM.jpg) */}
                           <h2 style={{ margin: 0, color: '#D1915F', fontSize: 20, fontWeight: 800, textAlign: 'center', letterSpacing: -0.5 }}>SELECT PAYMENT METHOD</h2>
                           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
                             <button onClick={() => handleSelectPaymentMethod('Cash')} style={{ padding: '20px 16px', background: '#faebe0', border: '2px solid #f2d8c3', borderRadius: 12, color: '#D1915F', fontWeight: 800, cursor: 'pointer', fontSize: 15 }}><span>💵 CASH</span></button>
@@ -275,7 +303,6 @@ export default function PosTerminal() {
                         </>
                       ) : (
                         <>
-                          {/* STAGE B: INTERMEDIATE FINAL CONFIRMATION DIALOG VIEW */}
                           <h2 style={{ margin: 0, color: '#FF4A4A', fontSize: 18, fontWeight: 800, textAlign: 'center', letterSpacing: -0.5 }}>CONFIRM TRANSACTION</h2>
                           
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: '#F9F8F6', padding: 16, borderRadius: 12, border: '1px solid #f2d8c3' }}>

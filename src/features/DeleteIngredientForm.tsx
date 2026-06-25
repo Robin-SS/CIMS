@@ -32,11 +32,11 @@ export default function DeleteIngredientForm({
     // Convert Set IDs directly back into reference models
     const targets = ingredients.filter(item => selectedIds.has(item.ingredient_id));
 
-    // Delete all selected assets sequentially down the stream
+    // Processes soft deletes sequentially down the execution stack stream
     for (const asset of targets) {
       const success = await deleteIngredient(asset.ingredient_id);
       if (!success) {
-        setDeleteError(`Database Alert: Failed to delete "${asset.ingredient_name}".`);
+        setDeleteError(`Database Alert: Failed to process soft-delete archive for "${asset.ingredient_name}".`);
         return false;
       }
     }

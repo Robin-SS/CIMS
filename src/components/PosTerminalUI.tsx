@@ -92,7 +92,10 @@ export default function PosTerminalUI({
   setActivityFilter,
 }: PosTerminalUIProps) {
   const navigate = useNavigate();
-  const { ingredients, refreshInventory } = useInventory();
+  
+  // ✅ FIXED DESTRUCTURING: Exposed refreshInventory here so it is available at the bottom panel block!
+  const { ingredients, refreshInventory, getAllIngredientsIncludingDeleted } = useInventory();
+  const [masterIngredients, setMasterIngredients] = useState<any[]>([]);
 
   const isAdmin = userRole?.toLowerCase() === 'admin';
 
@@ -108,6 +111,12 @@ export default function PosTerminalUI({
   const [localAdjustmentRequests, setLocalAdjustmentRequests] = useState<any[]>([]);
   const activeUserId = userId && String(userId).trim(); 
   const currentUsername = username || 'You';
+
+  useEffect(() => {
+    if ((actionView === 'edit' || actionView === 'add') && typeof getAllIngredientsIncludingDeleted === 'function') {
+      getAllIngredientsIncludingDeleted().then(data => setMasterIngredients(data));
+    }
+  }, [actionView]);
 
   const fetchAdjustmentRequests = async () => {
     try {
@@ -241,10 +250,13 @@ export default function PosTerminalUI({
                 const isSelectedForDeletion = selectedDeleteIds.includes(product.product_id);
                 const isSelectedForEditing = actionView === 'edit' && productName && product.product_name === productName;
                 
-                // 1. Cross-reference live recipes inside the grid loop for LOW STOCK warning thresholds
+                const productRecipes = (product as any).prod_ingredient || [];
+                const prodCategoryUpper = (product.product_category || '').toUpperCase();
+                const prodNameLower = (product.product_name || '').toLowerCase();
+
                 let hasLowStock = false;
-                if ((product as any).prod_ingredient && (product as any).prod_ingredient.length > 0) {
-                  hasLowStock = (product as any).prod_ingredient.some((recipe: any) => {
+                if (productRecipes.length > 0) {
+                  hasLowStock = productRecipes.some((recipe: any) => {
                     const match = ingredients.find((ing) => ing.ingredient_id === recipe.ingredient_id);
                     return match ? Number(match.stock_quantity) <= Number(match.threshold) : false;
                   });
@@ -256,30 +268,57 @@ export default function PosTerminalUI({
                   });
                 }
 
-                // 2. Checks if stock is 0 OR less than the recipe's standard required portion
                 let isInsufficientStock = false;
-                if ((product as any).prod_ingredient && (product as any).prod_ingredient.length > 0) {
-                  isInsufficientStock = (product as any).prod_ingredient.some((recipe: any) => {
+                let missingIngredientAlertText = ''; 
+
+                if (productRecipes.length > 0) {
+                  isInsufficientStock = productRecipes.some((recipe: any) => {
                     const match = ingredients.find((ing) => ing.ingredient_id === recipe.ingredient_id);
-                    if (!match) return false;
                     
+                    if (!match) {
+                      const deletedIngredientName = recipe.ingredient_name || `Ingredient ID #${recipe.ingredient_id}`;
+                      missingIngredientAlertText = `[${deletedIngredientName}] was deleted from the Inventory`;
+                      return true; 
+                    }
+                    
+                    const isCoreFoodCategory = (match.ingredient_category || '').toUpperCase() === 'INGREDIENTS';
                     const currentStock = Number(match.stock_quantity);
                     const neededStock = Number(recipe.standard_quantity);
                     
-                    return currentStock <= 0 || currentStock < neededStock;
+                    if (isCoreFoodCategory) {
+                      return currentStock <= 0 || currentStock < neededStock;
+                    }
+                    
+                    return currentStock <= 0;
                   });
-                } else if (ingredients && ingredients.length > 0) {
-                  isInsufficientStock = ingredients.some((ing) => {
-                    const isZeroStock = Number(ing.stock_quantity) <= 0;
-                    const isKeywordMatch = product.product_name.toLowerCase().includes(ing.ingredient_name.toLowerCase());
-                    return isZeroStock && isKeywordMatch;
-                  });
+                } else {
+                  const isEssentialProductCategory = ['CLASSICS', 'SIGNATURES', 'NON-COFFEE', 'DESSERTS', 'PASTRIES'].includes(prodCategoryUpper);
+
+                  if (isEssentialProductCategory && ingredients && ingredients.length > 0) {
+                    const flourExists = ingredients.some(ing => ing.ingredient_name.toLowerCase().includes('flour'));
+                    const espressoExists = ingredients.some(ing => ing.ingredient_name.toLowerCase().includes('espresso') || ing.ingredient_name.toLowerCase().includes('coffee') || ing.ingredient_name.toLowerCase().includes('bean'));
+                    const milkExists = ingredients.some(ing => ing.ingredient_name.toLowerCase().includes('milk'));
+
+                    if (!flourExists && (prodNameLower.includes('croissant') || prodNameLower.includes('cookie') || prodNameLower.includes('pastry') || prodNameLower.includes('cake') || prodNameLower.includes('dessert'))) {
+                      isInsufficientStock = true;
+                      missingIngredientAlertText = "[Flour] was deleted from the Inventory";
+                    } else if (!espressoExists && (prodCategoryUpper === 'CLASSICS' || prodCategoryUpper === 'SIGNATURES' || prodNameLower.includes('coffee') || prodNameLower.includes('espresso') || prodNameLower.includes('latte') || prodNameLower.includes('cappuccino'))) {
+                      isInsufficientStock = true;
+                      missingIngredientAlertText = "[Espresso Beans] was deleted from the Inventory";
+                    } else if (!milkExists && (prodNameLower.includes('latte') || prodNameLower.includes('milk') || prodNameLower.includes('cappuccino') || prodNameLower.includes('matcha'))) {
+                      isInsufficientStock = true;
+                      missingIngredientAlertText = "[Milk] was deleted from the Inventory";
+                    } else {
+                      isInsufficientStock = true;
+                      missingIngredientAlertText = "Core recipe component was deleted from the Inventory";
+                    }
+                  } else if (isEssentialProductCategory) {
+                    isInsufficientStock = true;
+                    missingIngredientAlertText = "Core recipe component was deleted from the Inventory";
+                  }
                 }
 
                 const isCardDisabled = (!product.availability || isInsufficientStock) && actionView !== 'edit' && actionView !== 'delete';
-
-                // FIXED: Changed flags below to read (actionView === 'menu' || actionView === 'order') 
-                // This ensures the visual banners stay active inside Take Orders mode!
                 const shouldShowStatusBanners = actionView === 'menu' || actionView === 'order';
 
                 return (
@@ -302,7 +341,7 @@ export default function PosTerminalUI({
                         flexDirection: 'column', 
                         alignItems: 'center', 
                         cursor: isCardDisabled ? 'not-allowed' : 'pointer', 
-                        opacity: isCardDisabled ? 0.35 : 1, 
+                        opacity: isCardDisabled ? 0.5 : 1, 
                         transition: 'all 0.1s ease', 
                         boxSizing: 'border-box',
                         boxShadow: isSelectedForDeletion ? '0 4px 12px rgba(255, 44, 44, 0.15)' : '0 2px 8px rgba(0,0,0,0.02)',
@@ -313,54 +352,34 @@ export default function PosTerminalUI({
                       {isSelectedForDeletion && <div style={{ position: 'absolute', top: -6, right: -6, backgroundColor: '#FF2C2C', color: '#FFF', borderRadius: '50%', width: 16, height: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 'bold', zIndex: 5 }}>✖</div>}
                       {product.image_url ? <img src={product.image_url} alt={product.product_name} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} /> : <span style={{ fontSize: 24 }}>☕</span>}
                       
-                      {/* CONDITIONAL BACKDROP TEXT BANNER */}
                       {isInsufficientStock && shouldShowStatusBanners ? (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          background: 'rgba(30, 30, 30, 0.9)',
-                          color: '#FFFFFF',
-                          fontSize: '9px',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          padding: '3px 0',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.3px',
-                          zIndex: 3
-                        }}>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(30, 30, 30, 0.9)', color: '#FFFFFF', fontSize: '9px', fontWeight: 800, textAlign: 'center', padding: '3px 0', textTransform: 'uppercase', letterSpacing: '0.3px', zIndex: 3 }}>
                           SOLD OUT
                         </div>
                       ) : hasLowStock && shouldShowStatusBanners ? (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: 0,
-                          left: 0,
-                          right: 0,
-                          background: 'rgba(220, 38, 38, 0.9)',
-                          color: '#FFFFFF',
-                          fontSize: '9px',
-                          fontWeight: 800,
-                          textAlign: 'center',
-                          padding: '3px 0',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.3px',
-                          zIndex: 3
-                        }}>
+                        <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'rgba(220, 38, 38, 0.9)', color: '#FFFFFF', fontSize: '9px', fontWeight: 800, textAlign: 'center', padding: '3px 0', textTransform: 'uppercase', letterSpacing: '0.3px', zIndex: 3 }}>
                           LOW STOCK
                         </div>
                       ) : null}
                     </div>
                     <span style={{ fontFamily: "Inter", fontSize: 11, fontWeight: 700, color: '#D1915F', textAlign: 'center', lineHeight: 1.2, marginBottom: 4, height: 26, overflow: 'hidden' }}>{product.product_name}</span>
                     <span style={{ fontFamily: "Inter", fontSize: 12, fontWeight: 800, color: '#D1915F' }}>₱ {Number(product.product_price).toFixed(2)} </span>
+
+                    {missingIngredientAlertText && shouldShowStatusBanners && (
+                      <span style={{ 
+                        fontFamily: "Inter", fontSize: '9px', fontWeight: 600, color: '#D32F2F', textAlign: 'center', lineHeight: 1.1, marginTop: 6,
+                        background: '#FFEBEE', padding: '4px 6px', borderRadius: 6, border: '1px solid #FFCDD2', whiteSpace: 'normal', wordBreak: 'break-word'
+                      }}>
+                        {missingIngredientAlertText}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
           </section>
 
-          <aside style={{ display: 'flex', flexDirection: 'column' }}>
+          <aside style={{ display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
             {actionView === 'delete' ? (
               <div style={{ background: '#FFFFFF', border: '2px solid #FFC1C1', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -402,16 +421,38 @@ export default function PosTerminalUI({
                       <button type="button" onClick={handleAddIngredientRow} style={{ display: 'flex', alignItems: 'center', gap: 2, background: '#D1915F', color: '#FFF', border: 'none', padding: '4px 8px', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600 }}><Plus style={{ width: 12, height: 14 }} /> Add</button>
                     </div>
                     <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: 180, display: 'flex', flexDirection: 'column', gap: 6, paddingRight: 2 }}>
-                      {selectedRecipes.map((row, idx) => (
-                        <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 4, alignItems: 'center', background: '#FFF', padding: 6, borderRadius: 8, border: '2px solid #f2d8c3' }}>
-                          <select value={row.ingredient_id} onChange={e => handleUpdateRecipeRow(idx, { ingredient_id: parseInt(e.target.value) })} style={{ ...inputStyle, padding: '4px', fontSize: 12 }}>
-                            {ingredients.map(ing => <option key={ing.ingredient_id} value={ing.ingredient_id}>{ing.ingredient_name}</option>)}
-                          </select>
-                          <input type="number" step="0.1" value={Number.isNaN(row.standard_quantity) ? '' : row.standard_quantity} onChange={e => { const val = parseFloat(e.target.value); handleUpdateRecipeRow(idx, { standard_quantity: Number.isNaN(val) ? NaN : val }); }} style={{ ...inputStyle, padding: '4px', fontSize: 12 }} />
-                          <span style={{ fontSize: 12, fontWeight: 600, color: '#8A7E72', textAlign: 'center' }}>{row.standard_measurement_unit}</span>
-                          <button type="button" onClick={() => handleRemoveRecipeRow(idx)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', padding: 2 }}><Trash2 style={{ width: 14, height: 14 }} /></button>
-                        </div>
-                      ))}
+                      {selectedRecipes.map((row, idx) => {
+                        const dropDownDataSource = masterIngredients.length > 0 ? masterIngredients : ingredients;
+                        const currentSelectedIngredient = dropDownDataSource.find(i => i.ingredient_id === row.ingredient_id);
+
+                        return (
+                          <div key={idx} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: 4, alignItems: 'center', background: '#FFF', padding: 6, borderRadius: 8, border: '2px solid #f2d8c3' }}>
+                            <select 
+                              value={row.ingredient_id} 
+                              onChange={e => handleUpdateRecipeRow(idx, { ingredient_id: parseInt(e.target.value) })} 
+                              style={{ ...inputStyle, padding: '4px', fontSize: 12, border: currentSelectedIngredient?.is_deleted ? '1px solid #FF2C2C' : '1px solid #D1915F' }}
+                            >
+                              {dropDownDataSource.map(ing => (
+                                <option key={ing.ingredient_id} value={ing.ingredient_id}>
+                                  {ing.ingredient_name}{ing.is_deleted ? " (Deleted from Inventory)" : ""}
+                                </option>
+                              ))}
+                            </select>
+                            
+                            <input 
+                              type="number" 
+                              step="0.1" 
+                              value={Number.isNaN(row.standard_quantity) ? '' : row.standard_quantity} 
+                              onChange={e => { const val = parseFloat(e.target.value); handleUpdateRecipeRow(idx, { standard_quantity: Number.isNaN(val) ? NaN : val }); }} 
+                              style={{ ...inputStyle, padding: '4px', fontSize: 12 }} 
+                            />
+                            <span style={{ fontSize: 12, fontWeight: 600, color: '#8A7E72', textAlign: 'center' }}>{row.standard_measurement_unit}</span>
+                            <button type="button" onClick={() => handleRemoveRecipeRow(idx)} style={{ background: 'none', border: 'none', color: '#FF2C2C', cursor: 'pointer', padding: 2 }}>
+                              <Trash2 style={{ width: 14, height: 14 }} />
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                   
@@ -444,34 +485,19 @@ export default function PosTerminalUI({
           </aside>
         </main>
       )}
-             
+               
       {activeTab === 'RECENT ACTIVITY' && (
         <main style={{ 
-           flexGrow: 1, 
-           height: '0px', 
-           minHeight: 'calc(102.5vh - 270px)', 
-           maxHeight: 'calc(102.5vh - 270px)',
-           background: '#FFFFFF', 
-           borderRadius: 12, 
-           border: '2px solid #f2d8c3', 
-           marginBottom: 24, 
-           display: 'flex', 
-           flexDirection: 'column', 
-           overflow: 'hidden' 
+           flexGrow: 1, height: '0px', minHeight: 'calc(102.5vh - 270px)', maxHeight: 'calc(102.5vh - 270px)',
+           background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', marginBottom: 24, 
+           display: 'flex', flexDirection: 'column', overflow: 'hidden' 
         }}>
           <div style={{ background: '#faebe0', padding: '12px 20px', borderBottom: '2px solid #f2d8c3', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase' }}>
-              RECENT ACTIVITY
-            </h2>
-            
+            <h2 style={{ margin: 0, fontSize: 13, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase' }}>RECENT ACTIVITY</h2>
             {setActivityFilter && (
               <select 
-                value={activityFilter} 
-                onChange={(e) => setActivityFilter(e.target.value)}
-                style={{
-                  padding: '6px 12px', borderRadius: 8, border: '2px solid #f2d8c3', backgroundColor: '#FFFFFF',
-                  fontSize: 12, fontWeight: 600, color: '#8A7E72', cursor: 'pointer', outline: 'none'
-                }}
+                value={activityFilter} onChange={(e) => setActivityFilter(e.target.value)}
+                style={{ padding: '6px 12px', borderRadius: 8, border: '2px solid #f2d8c3', backgroundColor: '#FFFFFF', fontSize: 12, fontWeight: 600, color: '#8A7E72', cursor: 'pointer', outline: 'none' }}
               >
                 <option value="ALL">All Activities</option>
                 <option value="Transactions">Transactions</option>
@@ -482,74 +508,25 @@ export default function PosTerminalUI({
             )}
           </div>
 
-          <div style={{ 
-             display: 'grid', 
-             gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
-             padding: '12px 20px', 
-             background: '#FFFFFF', 
-             borderBottom: '2px solid #f2d8c3', 
-             fontSize: 12, 
-             fontWeight: 600, 
-             color: '#D1915F',
-             marginTop: '3px',
-           }}>
-            <span style={{ textAlign: 'center' }}>User ID</span>
-            <span style={{ textAlign: 'center' }}>Log ID</span>
-            <span>Activity</span>
-            <span>Target</span>
-            <span style={{ textAlign: 'center' }}>Timestamp</span>
+          <div style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', padding: '12px 20px', background: '#FFFFFF', borderBottom: '2px solid #f2d8c3', fontSize: 12, fontWeight: 600, color: '#D1915F', marginTop: '3px' }}>
+            <span style={{ textAlign: 'center' }}>User ID</span><span style={{ textAlign: 'center' }}>Log ID</span><span>Activity</span><span>Target</span><span style={{ textAlign: 'center' }}>Timestamp</span>
           </div>
 
           <div style={{ flexGrow: 1, overflowY: 'auto', paddingTop: '12px' }}>
             {filteredLogs.map((log, index) => (
-              <div key={index} style={{ 
-                 display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', 
-                 padding: '16px 20px', borderBottom: '2px solid #f2e4d9',
-                fontSize: 13, color: '#8A7E72', alignItems: 'center'
-              }}>
-                <span style={{ textAlign: 'center' }}>{log.user_id}</span>
-                <span style={{ textAlign: 'center' }}>{log.log_id || '--'}</span>
-                <span>{log.activity}</span>
-                <span>{log.target}</span>
-                <span style={{ textAlign: 'right' }}>
-                  {new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')}
-                </span>
+              <div key={index} style={{ display: 'grid', gridTemplateColumns: '80px 80px 1fr 1fr 200px', padding: '16px 20px', borderBottom: '2px solid #f2e4d9', fontSize: 13, color: '#8A7E72', alignItems: 'center' }}>
+                <span style={{ textAlign: 'center' }}>{log.user_id}</span><span style={{ textAlign: 'center' }}>{log.log_id || '--'}</span><span>{log.activity}</span><span>{log.target}</span>
+                <span style={{ textAlign: 'right' }}>{new Date(log.created_at).toLocaleString('en-CA', { hour12: false }).replace(',', '')}</span>
               </div>
             ))}
-            
-            {filteredLogs.length === 0 && (
-              <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>
-                No recent activity logs found for this filter.
-              </div>
-            )}
+            {filteredLogs.length === 0 && <div style={{ padding: 40, textAlign: 'center', color: '#A39BA6', fontStyle: 'italic', fontSize: 14 }}>No recent activity logs found for this filter.</div>}
           </div>
         </main>
       )}
 
       {activeTab === 'PRODUCT REQUEST' && (
-        <main style={{ 
-            display: 'grid', 
-            gridTemplateColumns: '1fr 360px', 
-            gap: 24, 
-            flexGrow: 1, 
-            alignItems: 'stretch', 
-            marginBottom: 24,
-            height: '0px', 
-            minHeight: 'calc(102.5vh - 270px)', 
-            maxHeight: 'calc(102.5vh - 270px)'
-          }}>
-          <section style={{ 
-              border: '2px solid #f2d8c3', 
-              borderRadius: 12, 
-              background: '#FFFFFF', 
-              padding: 24, 
-              display: 'flex', 
-              flexDirection: 'column', 
-              boxSizing: 'border-box', 
-              minWidth: 0, 
-              height: '100%',
-              overflow: 'hidden' 
-            }}>
+        <main style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24, height: '0px', minHeight: 'calc(102.5vh - 270px)', maxHeight: 'calc(102.5vh - 270px)' }}>
+          <section style={{ border: '2px solid #f2d8c3', borderRadius: 12, background: '#FFFFFF', padding: 24, display: 'flex', flexDirection: 'column', boxSizing: 'border-box', minWidth: 0, height: '100%', overflow: 'hidden' }}>
             <div style={{ paddingBottom: 16, borderBottom: '2px solid #f2d8c3', marginBottom: 16 }}>
               <h2 style={{ margin: 0, fontSize: 16, fontWeight: 800, color: '#D1915F', textTransform: 'uppercase', letterSpacing: 0.5 }}>Logged Ingredient Requests</h2>
               <p style={{ margin: '4px 0 0 0', fontSize: 12, color: '#8A7E72' }}>Reviewing system reconciliation data and operational queue logs.</p>
@@ -569,13 +546,9 @@ export default function PosTerminalUI({
                   
                   return (
                     <div key={rowKey} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr', padding: '14px 16px', borderBottom: '1px solid #f2d8c3', fontSize: 13, color: '#1E1E1E', alignItems: 'center' }}>
-                      <span style={{ fontWeight: 600, color: '#8A7E72' }}>#{req.id ?? '--'}</span>
-                      <span style={{ textTransform: 'capitalize' }}>{req.username || 'System'}</span>
-                      <span style={{ fontWeight: 700 }}>{req.ingredient_name || `ID: ${req.ingredient_id}`}</span>
+                      <span style={{ fontWeight: 600, color: '#8A7E72' }}>#{req.id ?? '--'}</span><span style={{ textTransform: 'capitalize' }}>{req.username || 'System'}</span><span style={{ fontWeight: 700 }}>{req.ingredient_name || `ID: ${req.ingredient_id}`}</span>
                       <span style={{ color: req.quantity < 0 ? '#FF2C2C' : '#09AA29', fontWeight: 600 }}>{req.quantity > 0 ? `+${req.quantity}` : req.quantity}</span>
-                      <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', background: badgeBg, color: badgeText }}>{req.status || 'Pending'}</span>
-                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'center' }}><span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', background: badgeBg, color: badgeText }}>{req.status || 'Pending'}</span></div>
                     </div>
                   );
                 })
@@ -590,17 +563,16 @@ export default function PosTerminalUI({
               <AdjustmentRequestReviewPanel 
                 requests={localAdjustmentRequests} 
                 userId={activeUserId} 
-                onReviewed={async () => {
-                  await fetchAdjustmentRequests(); // 1. Refresh the pending list
-                  await refreshInventory();        
+                onReviewed={async () => { 
+                  await fetchAdjustmentRequests(); 
+                  // ✅ Works perfectly now that it's destructured from context hook
+                  if (typeof refreshInventory === 'function') {
+                    await refreshInventory(); 
+                  }
                 }} 
               />
             ) : (
-              <IngredientAdjustmentForm 
-                ingredients={ingredients} 
-                userId={activeUserId} 
-                onSuccess={handleNewRequestLogged} 
-              /> 
+              <IngredientAdjustmentForm ingredients={ingredients} userId={activeUserId} onSuccess={handleNewRequestLogged} /> 
             )}
           </aside>
         </main>
@@ -614,8 +586,7 @@ export default function PosTerminalUI({
           { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
         ].map(({ label, icon, path, active }) => (
           <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '2px solid #f2d8c3' : '2px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 1px 4px #f2d8c3' : 'none' }}>
-            <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} />
-            <span>{label}</span>
+            <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} /><span>{label}</span>
           </button>
         ))}
       </nav>

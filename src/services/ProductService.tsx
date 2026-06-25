@@ -6,11 +6,12 @@ export interface SelectedIngredientRecipe {
   ingredient_id: number;
   standard_quantity: number;
   standard_measurement_unit: string;
+  ingredient_name?: string; // Cache identifier string for deleted inventory lookups
 }
 
 export const ProductService = {
   async getAllProducts() {
-    // UPDATED: Explicitly select relational mapping rows from the junction matrix
+    // ✅ FIXED: Using explicit relation constraint 'prod_ingredient_ingredient_id_fkey' to eliminate query ambiguity
     const { data, error } = await supabase
       .from('products')
       .select(`
@@ -18,7 +19,10 @@ export const ProductService = {
         prod_ingredient (
           ingredient_id,
           standard_quantity,
-          standard_measurement_unit
+          standard_measurement_unit,
+          ingredients!prod_ingredient_ingredient_id_fkey (
+            ingredient_name
+          )
         )
       `)
       .order('product_name', { ascending: true });
@@ -28,21 +32,35 @@ export const ProductService = {
     }
 
     const productsWithImages = data.map((product) => {
+      // Safely flatten the inner relation database table result blocks 
+      const formattedIngredients = (product.prod_ingredient || []).map((recipe: any) => ({
+        ingredient_id: recipe.ingredient_id,
+        standard_quantity: recipe.standard_quantity,
+        standard_measurement_unit: recipe.standard_measurement_unit,
+        // Fallback gracefully to standard text layout if tracking constraints aren't accessible
+        ingredient_name: recipe.ingredients?.ingredient_name || `Ingredient #${recipe.ingredient_id}`
+      }));
+
+      let mappedProduct = {
+        ...product,
+        prod_ingredient: formattedIngredients
+      };
+
       if (product.image_url) {
         const { data: publicUrlData } = supabase
           .storage
           .from('product-images')
           .getPublicUrl(product.image_url);
         
-        return { ...product, image_url: publicUrlData.publicUrl };
+          mappedProduct.image_url = publicUrlData.publicUrl;
       }
-      return product;
+      return mappedProduct;
     });
 
     return { data: productsWithImages as Product[], error: null };
   },
 
-  // NEW DATABASE INSERTION TRANSACTION HANDLER
+  // DATABASE INSERTION TRANSACTION HANDLER
   async addProductWithIngredients(
     name: string,
     category: string,
@@ -99,7 +117,6 @@ export const ProductService = {
     return { success: true, error: null };
   },
 
-  // ✅ TRACKED: ADDED CONSOLE LOGGER AGENTS TO PINPOINT DATA PERSISTENCE GRAPH DESYNCS
   async updateProductWithIngredients(
     productId: number,
     name: string,
