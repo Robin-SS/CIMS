@@ -34,7 +34,7 @@ export default function AnalyticsKpiCards({ data, isLoading }: AnalyticsKpiCards
   };
 
   const metricSideStyle: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 8, textAlign: 'center' };
-  const titleSideStyle: React.CSSProperties = { background: '#D1915F', color: '#FFFFFF', padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', fontSize: 11, fontWeight: 800, lineHeight: 1.3, textTransform: 'uppercase', letterSpacing: 0.3 };
+  const titleSideStyle: React.CSSProperties = { background: '#D1915F', color: '#FFFFFF', padding: '12px 16px', display: 'flex', flexDirection: 'column', justifyContent: 'center', fontSize: 14, fontWeight: 800, lineHeight: 1.3, textTransform: 'uppercase', letterSpacing: 0.3 };
 
   if (isLoading) return <div style={{ width: 240, color: '#D1915F', fontStyle: 'italic', fontSize: 13, textAlign: 'center', marginTop: 40 }}>Recalculating KPIs...</div>;
 

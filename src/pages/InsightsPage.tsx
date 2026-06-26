@@ -3,6 +3,7 @@ import { useAuth } from '../context/AuthContext';
 import InsightsPageUI from '../components/InsightsPageUI';
 import AnalyticsKpiCards from '../features/AnalyticsKpiCards';
 import PredictedNeedsCards from '../features/PredictedNeedsCards'; 
+import PredictedIngredientNeeds, { type PredictedIngredientDetail } from '../features/PredictedIngredientNeeds';
 import { calculatePredictedNeeds } from '../services/ForecastService';
 import { AnalyticsService } from '../services/AnalyticsService';
 import RestockList from '../features/RestockList';
@@ -13,7 +14,7 @@ interface ForecastMetrics {
   predictedOrdersCount: number;
   ingredientsToOrderCount: number;
   dailyOrderRate: number; // ✅ Added for "X per day" subtext
-
+  predictedIngredientDetails: PredictedIngredientDetail[];
 }
 
 const FORECAST_RANGE_OPTIONS = [
@@ -42,7 +43,8 @@ export default function InsightsPage() {
     forecastPeriodStr: 'Calculating...',
     predictedOrdersCount: 0,
     ingredientsToOrderCount: 0,
-    dailyOrderRate: 0
+    dailyOrderRate: 0,
+    predictedIngredientDetails: []
   });
 
   // Fetching logic on mount
@@ -74,7 +76,8 @@ useEffect(() => {
             forecastPeriodStr: "Calculation error",
             predictedOrdersCount: 0,
             ingredientsToOrderCount: 0, 
-            dailyOrderRate: 0
+            dailyOrderRate: 0,
+            predictedIngredientDetails: []
           });
         }
         setIsForecastLoading(false); 
@@ -232,16 +235,13 @@ useEffect(() => {
           </div>
         ) : (
           <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#D1915F' }}>PREDICTED NEEDS</h3>
-            </div>
-            <div style={{ flexGrow: 1, border: '2px solid #f2d8c3', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E1E1E' }}>PREDICTED NEEDS</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#D1915F' }}>PREDICTED INGREDIENT NEEDS</h3>
 
               {/* ✅ Admin-only date range selector */}
               {user?.role === 'admin' && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#8A7E72' }}>Forecast range:</span>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#D1915F' }}>Forecast range:</span>
                   <select
                     value={lookAheadDays}
                     onChange={(e) => setLookAheadDays(Number(e.target.value))}
@@ -265,8 +265,12 @@ useEffect(() => {
                 </div>
               )}
             </div>
-            <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
-              Forecast visualizations pending...
+
+            <div style={{ flexGrow: 1, border: '2px solid #f2d8c3', borderRadius: 12, display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+              <PredictedIngredientNeeds
+                items={forecastMetrics.predictedIngredientDetails}
+                isLoading={isForecastLoading}
+              />
             </div>
           </div>
         )

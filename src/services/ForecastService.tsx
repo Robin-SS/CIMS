@@ -1,4 +1,5 @@
 import { supabase } from '../supabaseClient';
+import type { PredictedIngredientDetail } from '../features/PredictedIngredientNeeds';
 
 export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
   try {
@@ -27,7 +28,13 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
 
     if (!recentTransactions || recentTransactions.length === 0) {
       return {
-        data: { forecastPeriodStr, predictedOrdersCount: 0, ingredientsToOrderCount: 0, dailyOrderRate: 0 },
+        data: {
+          forecastPeriodStr,
+          predictedOrdersCount: 0,
+          ingredientsToOrderCount: 0,
+          dailyOrderRate: 0,
+          predictedIngredientDetails: [] as PredictedIngredientDetail[]
+        },
         error: null
       };
     }
@@ -44,7 +51,13 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
 
     if (!pastSales || pastSales.length === 0) {
       return {
-        data: { forecastPeriodStr, predictedOrdersCount: 0, ingredientsToOrderCount: 0, dailyOrderRate: 0 },
+        data: {
+          forecastPeriodStr,
+          predictedOrdersCount: 0,
+          ingredientsToOrderCount: 0,
+          dailyOrderRate: 0,
+          predictedIngredientDetails: [] as PredictedIngredientDetail[]
+        },
         error: null
       };
     }
@@ -84,8 +97,10 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
         ingredient_id,
         standard_quantity,
         ingredients!prod_ingredient_ingredient_id_fkey (
+          ingredient_name,
           stock_quantity,
-          threshold
+          threshold,
+          measurement_unit
         )
       `)
       .in('product_id', productIdsWithDemand);
@@ -96,6 +111,8 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
       required: number;
       stockQuantity: number;
       threshold: number;
+      name: string;
+      unit: string;
     }> = {};
 
     if (recipes) {
@@ -112,6 +129,8 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
             required: 0,
             stockQuantity: Number(ingredientData?.stock_quantity || 0),
             threshold: Number(ingredientData?.threshold || 0),
+            name: ingredientData?.ingredient_name || `Ingredient #${recipe.ingredient_id}`,
+            unit: ingredientData?.measurement_unit || 'L',
           };
         }
         cumulativeIngredientDemand[recipe.ingredient_id].required += totalIngredientNeeded;
@@ -119,19 +138,32 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
     }
 
     let ingredientsToOrderCount = 0;
+    const predictedIngredientDetails: PredictedIngredientDetail[] = [];
+
     for (const ingId in cumulativeIngredientDemand) {
       const ing = cumulativeIngredientDemand[ingId];
       const targetBuffer = ing.required + ing.threshold;
-      if (targetBuffer > ing.stockQuantity) {
+      const needsOrder = targetBuffer > ing.stockQuantity;
+
+      if (needsOrder) {
         ingredientsToOrderCount++;
       }
+
+      predictedIngredientDetails.push({
+        id: Number(ingId),
+        name: ing.name,
+        currentStock: ing.stockQuantity,
+        predictedNeed: Math.round(ing.required * 100) / 100,
+        unit: ing.unit,
+        actionNeeded: needsOrder ? 'ORDER NOW' : 'ENOUGH STOCK'
+      });
     }
 
 
     // TRACK B: Simple stock check for CONSUMABLES and PACKAGING
     const { data: nonFoodItems, error: nonFoodError } = await supabase
       .from('ingredients')
-      .select('ingredient_id, stock_quantity, threshold, ingredient_category')
+      .select('ingredient_id, ingredient_name, stock_quantity, threshold, measurement_unit, ingredient_category')
       .in('ingredient_category', ['CONSUMABLES', 'PACKAGING']);
  
     if (nonFoodError) throw nonFoodError;
@@ -139,18 +171,39 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
     if (nonFoodItems) {
       nonFoodItems.forEach((item: any) => {
         // Flag if current stock is already below the safety threshold
-        if (Number(item.stock_quantity) <= Number(item.threshold)) {
+        const needsOrder = Number(item.stock_quantity) <= Number(item.threshold);
+        if (needsOrder) {
           ingredientsToOrderCount++;
         }
+
+        // These don't go through the recipe/demand model (no predicted
+        // consumption volume — they're just a direct stock-vs-threshold
+        // check), so predictedNeed is reported as the threshold itself,
+        // i.e. "the safety level you're being measured against."
+        predictedIngredientDetails.push({
+          id: Number(item.ingredient_id),
+          name: item.ingredient_name,
+          currentStock: Number(item.stock_quantity),
+          predictedNeed: Number(item.threshold),
+          unit: item.measurement_unit || '',
+          actionNeeded: needsOrder ? 'ORDER NOW' : 'ENOUGH STOCK'
+        });
       });
     }
-    
+
+    // Surface items that need ordering first
+    predictedIngredientDetails.sort((a, b) => {
+      const rank = { 'ORDER NOW': 1, 'ENOUGH STOCK': 0 };
+      return rank[b.actionNeeded] - rank[a.actionNeeded];
+    });
+
     return {
       data: {
         forecastPeriodStr,
         predictedOrdersCount: totalPredictedOrdersCount,
         ingredientsToOrderCount,
-        dailyOrderRate: overallDailyRate
+        dailyOrderRate: overallDailyRate,
+        predictedIngredientDetails
       },
       error: null
     };

@@ -23,14 +23,13 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
   };
 
   const cardBaseStyle: React.CSSProperties = {
-    background: '#FFFFFF',
-    borderRadius: 14,
-    border: '2px solid #f2d8c3',
-    display: 'grid',
-    gridTemplateColumns: '130px 1fr',
-    overflow: 'hidden',
-    flex: 1,
-    boxShadow: '0 4px 20px rgba(0,0,0,0.02)'
+    background: '#FFFFFF', 
+    borderRadius: 14, 
+    border: '2px solid #f2d8c3', 
+    display: 'grid', 
+    gridTemplateColumns: '95px 1fr', 
+    overflow: 'hidden', 
+    flex: 1, 
   };
 
   const metricSideStyle: React.CSSProperties = {
@@ -49,7 +48,7 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
-    fontSize: 11,
+    fontSize: 14,
     fontWeight: 800,
     lineHeight: 1.3,
     textTransform: 'uppercase',
@@ -75,10 +74,10 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
       {/* CARD 1: FORECAST PERIOD */}
       <div style={cardBaseStyle}>
         <div style={{ ...metricSideStyle, gap: 2 }}>
-          <span style={{ fontSize: 26, fontWeight: 900, color: '#D1915F', lineHeight: 1.1 }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', lineHeight: 1.1 }}>
             {diffDays} days
           </span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#8A7E72' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: '#8A7E72' }}>
             {formatShort(startDate)} - {formatShort(endDate)}
           </span>
         </div>
@@ -88,10 +87,10 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
       {/* CARD 2: PREDICTED ORDERS */}
       <div style={cardBaseStyle}>
         <div style={metricSideStyle}>
-          <span style={{ fontSize: 32, fontWeight: 900, color: '#D1915F', letterSpacing: -1, lineHeight: 1.1 }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', letterSpacing: -1, lineHeight: 1.1 }}>
             {data.predictedOrdersCount.toLocaleString('en-US')}
           </span>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#8A7E72' }}>
+          <span style={{ fontSize: 10, fontWeight: 800, color: '#8A7E72' }}>
             {data.dailyOrderRate} per day
           </span>
         </div>
@@ -101,11 +100,14 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
       {/* CARD 3: INGREDIENTS TO ORDER */}
       <div style={cardBaseStyle}>
         <div style={metricSideStyle}>
-          <span style={{ fontSize: 36, fontWeight: 900, color: '#D1915F', lineHeight: 1.1 }}>
+          <span style={{ fontSize: 22, fontWeight: 800, color: '#D1915F', lineHeight: 1.1 }}>
             {data.ingredientsToOrderCount}
           </span>
-          <span style={{ fontSize: 9, fontWeight: 600, color: '#8A7E72', marginTop: 2, whiteSpace: 'nowrap' }}>
-            before the stock runs out
+          <span style={{ fontSize: 10, fontWeight: 800, color: '#8A7E72', marginTop: 2, whiteSpace: 'nowrap' }}>
+            until
+          </span>
+                    <span style={{ fontSize: 10, fontWeight: 800, color: '#8A7E72', marginTop: 2, whiteSpace: 'nowrap' }}>
+            stock lasts
           </span>
         </div>
         <div style={titleSideStyle}><span>Ingredients</span><span>To Order</span></div>

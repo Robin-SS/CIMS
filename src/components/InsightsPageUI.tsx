@@ -31,7 +31,7 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
             <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
-
+     
         <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '2px solid #f2d8c3' }}>
           {['REPORTS & ANALYTICS', 'FORECAST'].map((tab) => (
             <button 
@@ -52,10 +52,18 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
       </header>
 
       {/* MAIN WORKSPACE GRID */}
-      <main style={{ display: 'flex', gap: 24, flexGrow: 1, marginBottom: 24, alignItems: 'stretch', minHeight: 0, overflow: 'hidden' }}>
-        
+      <main style={{ 
+        display: 'flex', 
+        gap: 24, 
+        flexGrow: 1, 
+        marginBottom: 24, 
+        alignItems: 'stretch', 
+        overflow: 'hidden', 
+        minHeight: 'calc(102.5vh - 270px)', 
+        maxHeight: 'calc(102.5vh - 270px)', 
+      }}>
         {/* LEFT CARDS SLOT - Updated to stretch full height */}
-        <aside style={{ display: 'flex', flexDirection: 'column', minWidth: 240, width: 240 }}>
+        <aside style={{ display: 'flex', flexDirection: 'column', minWidth: 260, width: 260 }}>
           {leftCardsSlot}
         </aside>
 
@@ -66,9 +74,21 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
 
       </main>
 
-      {/* FOOTER NAV */}
-      {/* BOTTOM NAV BAR */}
-      <nav style={{ background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', flexShrink: 0 }}>
+        {/* FOOTER NAV */}
+        {/* BOTTOM NAV BAR */}
+        <nav style={{ 
+          background: '#ffffff', 
+          borderRadius: 35, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'space-between', 
+          padding: 6, 
+          width: '100%', 
+          boxSizing: 'border-box', 
+          border: '2px solid #f2d8c3', 
+          flexShrink: 0,
+          marginTop: '20px'
+        }}>
         {[
           { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
           { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: false },
@@ -82,5 +102,6 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
         ))}
       </nav>
     </div>
+    
   );
 }
