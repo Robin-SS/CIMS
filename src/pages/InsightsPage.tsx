@@ -2,15 +2,33 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import InsightsPageUI from '../components/InsightsPageUI';
 import AnalyticsKpiCards from '../features/AnalyticsKpiCards';
+import PredictedNeedsCards from '../features/PredictedNeedsCards'; 
+import { calculatePredictedNeeds } from '../services/ForecastService';
 import { AnalyticsService } from '../services/AnalyticsService';
 import RestockList from '../features/RestockList';
 import type { KPIAnalytics } from '../types/Analytics';
+
+interface ForecastMetrics {
+  forecastPeriodStr: string;
+  predictedOrdersCount: number;
+  ingredientsToOrderCount: number;
+  dailyOrderRate: number; // ✅ Added for "X per day" subtext
+
+}
+
+const FORECAST_RANGE_OPTIONS = [
+  { label: 'Next 7 days',  value: 7  },
+  { label: 'Next 14 days', value: 14 },
+  { label: 'Next 30 days', value: 30 },
+];
 
 export default function InsightsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('REPORTS & ANALYTICS');
   const [searchQuery, setSearchQuery] = useState<string>(''); // ✅ NEW: Inline search query modifier state
-
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [lookAheadDays, setLookAheadDays] = useState<number>(7);
+  
   // State for the KPI metrics
   const [metrics, setMetrics] = useState<KPIAnalytics>({
     totalWeightKg: 0,
@@ -18,7 +36,14 @@ export default function InsightsPage() {
     lowStockCount: 0,
     details: []
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  const [isForecastLoading, setIsForecastLoading] = useState<boolean>(false);
+  const [forecastMetrics, setForecastMetrics] = useState<ForecastMetrics>({
+    forecastPeriodStr: 'Calculating...',
+    predictedOrdersCount: 0,
+    ingredientsToOrderCount: 0,
+    dailyOrderRate: 0
+  });
 
   // Fetching logic on mount
   useEffect(() => {
@@ -32,6 +57,31 @@ export default function InsightsPage() {
     }
     loadDashboardKPIs();
   }, []);
+
+useEffect(() => {
+    async function loadForecastKPIs() {
+      if (activeTab === 'FORECAST') {
+        setIsForecastLoading(true); 
+        
+        // ✅ FIXED: Calling your frontend client calculations directly
+        const { data, error } = await calculatePredictedNeeds(lookAheadDays);
+        console.log('FORECAST DEBUG:', { data, error });
+        
+        if (!error && data) { 
+          setForecastMetrics(data); 
+        } else {
+          setForecastMetrics({ 
+            forecastPeriodStr: "Calculation error",
+            predictedOrdersCount: 0,
+            ingredientsToOrderCount: 0, 
+            dailyOrderRate: 0
+          });
+        }
+        setIsForecastLoading(false); 
+      }
+    }
+    loadForecastKPIs();
+  }, [activeTab,lookAheadDays]); 
 
   // Native CSV Export Handler including Top KPI Aggregations
   const handleExportCSV = () => {
@@ -121,20 +171,10 @@ export default function InsightsPage() {
             isLoading={isLoading}
           />
         ) : (
-          <>
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>FORECAST PERIOD</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>PREDICTED ORDERS</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>INGREDIENTS TO ORDER</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-          </>
+          <PredictedNeedsCards 
+            data={forecastMetrics}
+            isLoading={isForecastLoading}
+          />
         )
       }
       mainContentSlot={
@@ -196,6 +236,37 @@ export default function InsightsPage() {
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#D1915F' }}>PREDICTED NEEDS</h3>
             </div>
             <div style={{ flexGrow: 1, border: '2px solid #f2d8c3', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E1E1E' }}>PREDICTED NEEDS</h3>
+
+              {/* ✅ Admin-only date range selector */}
+              {user?.role === 'admin' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ fontSize: 12, fontWeight: 600, color: '#8A7E72' }}>Forecast range:</span>
+                  <select
+                    value={lookAheadDays}
+                    onChange={(e) => setLookAheadDays(Number(e.target.value))}
+                    style={{
+                      padding: '6px 10px',
+                      borderRadius: 8,
+                      border: '2px solid #f2d8c3',
+                      fontSize: 12,
+                      fontWeight: 700,
+                      color: '#D1915F',
+                      backgroundColor: '#FFFFFF',
+                      cursor: 'pointer',
+                      outline: 'none',
+                      fontFamily: 'inherit'
+                    }}
+                  >
+                    {FORECAST_RANGE_OPTIONS.map(opt => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+            <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+              Forecast visualizations pending...
             </div>
           </div>
         )
