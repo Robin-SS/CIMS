@@ -98,5 +98,22 @@ export const AnalyticsService = {
       console.error('Failed to aggregate usage analytics:', err);
       return { data: null, error: err.message };
     }
+  },
+  async getForecastMetrics(lookAheadDays: number = 7) {
+    try {
+      // Replace with your real backend routing path URL
+      const response = await fetch(`/api/analytics/forecast?days=${lookAheadDays}`, {
+        method: 'GET',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      
+      if (!response.ok) throw new Error('Network response failure');
+      
+      const result = await response.json();
+      return { data: result.data, error: null };
+    } catch (err: any) {
+      console.error("Failed to fetch engine predictions:", err);
+      return { data: null, error: err.message || 'Error parsing data' };
+    }
   }
 };

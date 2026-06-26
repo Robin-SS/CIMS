@@ -1,0 +1,162 @@
+import { supabase } from '../supabaseClient';
+
+export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
+  try {
+    // --- CARD 1: TIMELINE BOUNDARIES ---
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+
+    const endDate = new Date();
+    endDate.setDate(startDate.getDate() + lookAheadDays);
+    endDate.setHours(23, 59, 59, 999);
+
+    const forecastPeriodStr = `${startDate.toLocaleDateString('en-US')} - ${endDate.toLocaleDateString('en-US')}`;
+
+    // --- CARD 2: PREDICTED VOLUME (28-DAY VELOCITY WINDOW) ---
+    const pastWindowDays = 28;
+    const historyStartDate = new Date();
+    historyStartDate.setDate(historyStartDate.getDate() - pastWindowDays);
+
+    // STEP 1: Get all transaction IDs from the last 28 days
+    const { data: recentTransactions, error: txnError } = await supabase
+      .from('transactions')
+      .select('transaction_id, transaction_date')
+      .gte('transaction_date', historyStartDate.toISOString());
+
+    if (txnError) throw txnError;
+
+    if (!recentTransactions || recentTransactions.length === 0) {
+      return {
+        data: { forecastPeriodStr, predictedOrdersCount: 0, ingredientsToOrderCount: 0, dailyOrderRate: 0 },
+        error: null
+      };
+    }
+
+    const validTransactionIds = recentTransactions.map((t: any) => t.transaction_id);
+
+    // STEP 2: Get all order_item rows belonging to those transactions
+    const { data: pastSales, error: salesError } = await supabase
+      .from('order_item')
+      .select('product_id, order_quantity, transaction_id')
+      .in('transaction_id', validTransactionIds);
+
+    if (salesError) throw salesError;
+
+    if (!pastSales || pastSales.length === 0) {
+      return {
+        data: { forecastPeriodStr, predictedOrdersCount: 0, ingredientsToOrderCount: 0, dailyOrderRate: 0 },
+        error: null
+      };
+    }
+
+    // STEP 3: Aggregate total quantity sold per product over the 28-day window
+    const productTotals: Record<number, number> = {};
+    pastSales.forEach((item: any) => {
+      if (!item.product_id) return;
+      const quantitySold = Number(item.order_quantity || 1);
+      productTotals[item.product_id] = (productTotals[item.product_id] || 0) + quantitySold;
+    });
+
+    // STEP 4: Project demand forward over the lookAhead window
+    let totalPredictedOrdersCount = 0;
+    const productPredictedDemand: Record<number, number> = {};
+
+    Object.keys(productTotals).forEach(pIdStr => {
+      const productId = Number(pIdStr);
+      const dailyRate = productTotals[productId] / pastWindowDays;
+      const projectedNeeds = Math.ceil(dailyRate * lookAheadDays);
+
+      productPredictedDemand[productId] = projectedNeeds;
+      totalPredictedOrdersCount += projectedNeeds;
+    });
+
+    // Overall daily rate across all products — used for the "X per day" subtext on Card 2
+    const totalSoldInWindow = Object.values(productTotals).reduce((sum, v) => sum + v, 0);
+    const overallDailyRate = Math.round(totalSoldInWindow / pastWindowDays);
+
+    // --- CARD 3: RECIPE EXPLOSION & LIVE DEFICIT ANALYSIS ---
+    const productIdsWithDemand = Object.keys(productPredictedDemand).map(Number);
+
+    const { data: recipes, error: recipeError } = await supabase
+      .from('prod_ingredient')
+      .select(`
+        product_id,
+        ingredient_id,
+        standard_quantity,
+        ingredients!prod_ingredient_ingredient_id_fkey (
+          stock_quantity,
+          threshold
+        )
+      `)
+      .in('product_id', productIdsWithDemand);
+
+    if (recipeError) throw recipeError;
+
+    const cumulativeIngredientDemand: Record<number, {
+      required: number;
+      stockQuantity: number;
+      threshold: number;
+    }> = {};
+
+    if (recipes) {
+      recipes.forEach((recipe: any) => {
+        const predictedItemSales = productPredictedDemand[recipe.product_id] || 0;
+        const totalIngredientNeeded = Number(recipe.standard_quantity || 0) * predictedItemSales;
+
+        const ingredientData = Array.isArray(recipe.ingredients)
+          ? recipe.ingredients[0]
+          : recipe.ingredients;
+
+        if (!cumulativeIngredientDemand[recipe.ingredient_id]) {
+          cumulativeIngredientDemand[recipe.ingredient_id] = {
+            required: 0,
+            stockQuantity: Number(ingredientData?.stock_quantity || 0),
+            threshold: Number(ingredientData?.threshold || 0),
+          };
+        }
+        cumulativeIngredientDemand[recipe.ingredient_id].required += totalIngredientNeeded;
+      });
+    }
+
+    let ingredientsToOrderCount = 0;
+    for (const ingId in cumulativeIngredientDemand) {
+      const ing = cumulativeIngredientDemand[ingId];
+      const targetBuffer = ing.required + ing.threshold;
+      if (targetBuffer > ing.stockQuantity) {
+        ingredientsToOrderCount++;
+      }
+    }
+
+
+    // TRACK B: Simple stock check for CONSUMABLES and PACKAGING
+    const { data: nonFoodItems, error: nonFoodError } = await supabase
+      .from('ingredients')
+      .select('ingredient_id, stock_quantity, threshold, ingredient_category')
+      .in('ingredient_category', ['CONSUMABLES', 'PACKAGING']);
+ 
+    if (nonFoodError) throw nonFoodError;
+ 
+    if (nonFoodItems) {
+      nonFoodItems.forEach((item: any) => {
+        // Flag if current stock is already below the safety threshold
+        if (Number(item.stock_quantity) < Number(item.threshold)) {
+          ingredientsToOrderCount++;
+        }
+      });
+    }
+    
+    return {
+      data: {
+        forecastPeriodStr,
+        predictedOrdersCount: totalPredictedOrdersCount,
+        ingredientsToOrderCount,
+        dailyOrderRate: overallDailyRate
+      },
+      error: null
+    };
+
+  } catch (err: any) {
+    console.error("Error calculating predictive metrics directly:", err);
+    return { data: null, error: err.message || 'Error processing forecast data' };
+  }
+}
