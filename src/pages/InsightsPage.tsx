@@ -2,24 +2,41 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import InsightsPageUI from '../components/InsightsPageUI';
 import AnalyticsKpiCards from '../features/AnalyticsKpiCards';
+import PredictedNeedsCards from '../features/PredictedNeedsCards'; // 🌟 IMPORT YOUR NEW FILE HERE
 import { AnalyticsService } from '../services/AnalyticsService';
 import RestockList from '../features/RestockList';
-import type { KPIAnalytics, IngredientUsageDetail  } from '../types/Analytics';
+import type { KPIAnalytics } from '../types/Analytics';
+
+// 🌟 NEW: Add an interface for your prediction state metrics
+interface PredictionMetrics {
+  forecastPeriodStr: string;
+  predictedOrdersCount: number;
+  ingredientsToOrderCount: number;
+}
 
 export default function InsightsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('REPORTS & ANALYTICS');
   
-  // 🌟 NEW: State for the KPI metrics
+  // Existing state for historical metrics
   const [metrics, setMetrics] = useState<KPIAnalytics>({
     totalWeightKg: 0,
     mostConsumedItem: 'Calculating...',
     lowStockCount: 0,
     details: [] 
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  // 🌟 NEW: Fetching logic on mount
+  // 🌟 NEW: State to hold your predictive needs data
+  const [predictiveMetrics, setPredictiveMetrics] = useState<PredictionMetrics>({
+    forecastPeriodStr: 'Calculating...',
+    predictedOrdersCount: 0,
+    ingredientsToOrderCount: 0
+  });
+
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isPredictiveLoading, setIsPredictiveLoading] = useState<boolean>(true);
+
+  // Fetching logic for historical dashboard
   useEffect(() => {
     async function loadDashboardKPIs() {
       setIsLoading(true);
@@ -32,6 +49,30 @@ export default function InsightsPage() {
     loadDashboardKPIs();
   }, []);
 
+  // 🌟 NEW: Fetching logic for predictive data
+  useEffect(() => {
+    async function loadPredictiveKPIs() {
+      setIsPredictiveLoading(true);
+      
+      // Replace this line with your actual API endpoint call when ready
+      // const { data, error } = await AnalyticsService.getPredictiveNeeds();
+      
+      // Mocking the backend response format based on what we engineered earlier:
+      const mockData = {
+        forecastPeriodStr: "06/25/2026 - 07/02/2026",
+        predictedOrdersCount: 1245,
+        ingredientsToOrderCount: 14
+      };
+      
+      setPredictiveMetrics(mockData);
+      setIsPredictiveLoading(false);
+    }
+    
+    if (activeTab !== 'REPORTS & ANALYTICS') {
+      loadPredictiveKPIs();
+    }
+  }, [activeTab]);
+
   return (
     <InsightsPageUI
       userRole={user?.role}
@@ -40,7 +81,6 @@ export default function InsightsPage() {
       
       leftCardsSlot={
         activeTab === 'REPORTS & ANALYTICS' ? (
-          // 🌟 INJECTED THE NEW KPI FEATURE COMPONENT HERE
           <AnalyticsKpiCards 
             data={{
               totalIngredientsKg: metrics.totalWeightKg,
@@ -50,22 +90,11 @@ export default function InsightsPage() {
             isLoading={isLoading}
           />
         ) : (
-          <>
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>FORECAST PERIOD</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>PREDICTED ORDERS</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-
-            <div style={{ padding: 16, background: '#FDFBF7', border: '1px solid #f2d8c3', borderRadius: 12 }}>
-              <span style={{ fontSize: 11, color: '#8A7E72', fontWeight: 600 }}>INGREDIENTS TO ORDER</span>
-              <div style={{ fontSize: 18, fontWeight: 800, color: '#D1915F', marginTop: 4 }}></div>
-            </div>
-          </>
+          // 🌟 FIXED: Swapped out the raw divs for your newly engineered predictive card layout!
+          <PredictedNeedsCards 
+            data={predictiveMetrics}
+            isLoading={isPredictiveLoading}
+          />
         )
       }
 
@@ -86,7 +115,7 @@ export default function InsightsPage() {
               </div>
             </div>
 
-           <div style={{ flexGrow: 1, border: '2px solid #E5E5E5', borderRadius: 12, display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+            <div style={{ flexGrow: 1, border: '2px solid #E5E5E5', borderRadius: 12, display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
               <RestockList items={metrics.details} isLoading={isLoading} />
             </div>
           </div>
@@ -101,6 +130,8 @@ export default function InsightsPage() {
             </div>
 
             <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+              {/* Future forecast detail table/view can go here */}
+              Forecast visualizations pending...
             </div>
           </div>
         )
