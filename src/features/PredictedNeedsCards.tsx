@@ -75,11 +75,11 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
       {/* CARD 1: FORECAST PERIOD */}
       <div style={cardBaseStyle}>
         <div style={{ ...metricSideStyle, gap: 2 }}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#8A7E72' }}>
-            {formatShort(startDate)} - {formatShort(endDate)}
-          </span>
           <span style={{ fontSize: 26, fontWeight: 900, color: '#D1915F', lineHeight: 1.1 }}>
             {diffDays} days
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#8A7E72' }}>
+            {formatShort(startDate)} - {formatShort(endDate)}
           </span>
         </div>
         <div style={titleSideStyle}><span>Forecast</span><span>Period</span></div>
@@ -88,11 +88,11 @@ export default function PredictedNeedsCards({ data, isLoading }: PredictedNeedsC
       {/* CARD 2: PREDICTED ORDERS */}
       <div style={cardBaseStyle}>
         <div style={metricSideStyle}>
-          <span style={{ fontSize: 11, fontWeight: 600, color: '#8A7E72' }}>
-            {data.dailyOrderRate} per day
-          </span>
           <span style={{ fontSize: 32, fontWeight: 900, color: '#D1915F', letterSpacing: -1, lineHeight: 1.1 }}>
             {data.predictedOrdersCount.toLocaleString('en-US')}
+          </span>
+          <span style={{ fontSize: 11, fontWeight: 600, color: '#8A7E72' }}>
+            {data.dailyOrderRate} per day
           </span>
         </div>
         <div style={titleSideStyle}><span>Predicted</span><span>Orders</span></div>
