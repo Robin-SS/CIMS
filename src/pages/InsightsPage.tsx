@@ -141,7 +141,7 @@ export default function InsightsPage() {
         activeTab === 'REPORTS & ANALYTICS' ? (
           <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E1E1E' }}>RESTOCK LIST</h3>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#D1915F' }}>RESTOCK LIST</h3>
               
               {/* ✅ UPDATED: Added an inline search control element row container block */}
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -170,7 +170,7 @@ export default function InsightsPage() {
                     style={{ 
                       padding: '6px 12px', 
                       background: '#FFFFFF', 
-                      border: '1px solid #f2d8c3', 
+                      border: '2px solid #f2d8c3', 
                       color: '#D1915F', 
                       borderRadius: 8, 
                       fontSize: 12, 
@@ -185,7 +185,7 @@ export default function InsightsPage() {
               </div>
             </div>
 
-            <div style={{ flexGrow: 1, border: '2px solid #E5E5E5', borderRadius: 12, display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
+            <div style={{ flexGrow: 1, border: '2px solid #f2d8c3', borderRadius: 12, display: 'flex', flexDirection: 'column', backgroundColor: '#FFFFFF', overflow: 'hidden' }}>
               {/* ✅ MODIFIED: RestockList component now displays the dynamically targeted filtered details state snapshot */}
               <RestockList items={filteredDetails} isLoading={isLoading} />
             </div>
@@ -193,9 +193,9 @@ export default function InsightsPage() {
         ) : (
           <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#1E1E1E' }}>PREDICTED NEEDS</h3>
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#D1915F' }}>PREDICTED NEEDS</h3>
             </div>
-            <div style={{ flexGrow: 1, border: '2px dashed #E5E5E5', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
+            <div style={{ flexGrow: 1, border: '2px solid #f2d8c3', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8A7E72', fontStyle: 'italic', backgroundColor: '#FAFAFA' }}>
             </div>
           </div>
         )

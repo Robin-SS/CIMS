@@ -20,23 +20,24 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
   const navigate = useNavigate();
 
   return (
-  <div style={{ height: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif", padding: 24, display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' }}>
+    <div style={{ height: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif", padding: 24, display: 'flex', flexDirection: 'column', boxSizing: 'border-box', overflow: 'hidden' }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
 
       {/* HEADER ROW */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} alt="Logo" />
           <h1 style={{ fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E', lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
             <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
 
-        <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '2px solid #f2d8c3' }}>          {['REPORTS & ANALYTICS', 'FORECAST'].map((tab) => (
+        <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '2px solid #f2d8c3' }}>
+          {['REPORTS & ANALYTICS', 'FORECAST'].map((tab) => (
             <button 
               key={tab} 
               onClick={() => onTabChange(tab)} 
-            style={{ padding: '10px 20px', borderRadius: 24, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, letterSpacing: 0.5, transition: 'all 0.2s', backgroundColor: currentTab === tab ? '#faebe0' : 'transparent', color: currentTab === tab ? '#D1915F' : '#D1915F' }}>
+              style={{ padding: '10px 20px', borderRadius: 24, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, letterSpacing: 0.5, transition: 'all 0.2s', backgroundColor: currentTab === tab ? '#faebe0' : 'transparent', color: currentTab === tab ? '#D1915F' : '#D1915F' }}>
               {tab}
             </button>
           ))}
@@ -50,9 +51,8 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
         </div>
       </header>
 
-
       {/* MAIN WORKSPACE GRID */}
-      <main style={{ display: 'flex', gap: 24, flexGrow: 1, marginBottom: 24, alignItems: 'stretch' }}>
+      <main style={{ display: 'flex', gap: 24, flexGrow: 1, marginBottom: 24, alignItems: 'stretch', minHeight: 0, overflow: 'hidden' }}>
         
         {/* LEFT CARDS SLOT - Updated to stretch full height */}
         <aside style={{ display: 'flex', flexDirection: 'column', minWidth: 240, width: 240 }}>
@@ -60,7 +60,7 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
         </aside>
 
         {/* MAIN CONTENT SLOT */}
-        <section style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: 12, border: '1px solid #D3C9BE', padding: 24, boxShadow: '0 4px 40px rgba(0,0,0,0.02)' }}>
+        <section style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', padding: 24, overflow: 'hidden' }}>
           {mainContentSlot}
         </section>
 
@@ -70,7 +70,7 @@ export default function InsightsPageUI({ userRole, currentTab, onTabChange, left
       {/* BOTTOM NAV BAR */}
       <nav style={{ background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', flexShrink: 0 }}>
         {[
-          { label: 'HOME',         icon: homeIcon,      path: '/home',      active: false },
+          { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
           { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: false },
           { label: 'INVENTORY',      icon: inventoryIcon, path: '/inventory', active: false },
           { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: true },
