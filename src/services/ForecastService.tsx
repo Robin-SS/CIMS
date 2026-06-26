@@ -139,7 +139,7 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
     if (nonFoodItems) {
       nonFoodItems.forEach((item: any) => {
         // Flag if current stock is already below the safety threshold
-        if (Number(item.stock_quantity) < Number(item.threshold)) {
+        if (Number(item.stock_quantity) <= Number(item.threshold)) {
           ingredientsToOrderCount++;
         }
       });
