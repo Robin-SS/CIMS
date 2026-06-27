@@ -1,6 +1,8 @@
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { Coffee, ShoppingCart, Package, BarChart3, LogOut, Shield } from 'lucide-react';
+import { Monitor, Package, BarChart3, LogOut } from 'lucide-react';
+import cafeLogo from '../assets/cafeLogo.png';
+import adminIcon from '../assets/adminIcon.png';
 
 export default function HomeHub() {
   const { user, logout } = useAuth();
@@ -8,91 +10,206 @@ export default function HomeHub() {
 
   const modules = [
     {
-      title: 'POS Register',
-      description: 'Open active cashier terminal to take orders and process bills.',
+      title: 'POINT OF SALES',
       path: '/pos',
-      icon: ShoppingCart,
-      color: 'bg-orange-600 hover:bg-orange-700',
+      icon: Monitor,
     },
     {
-      title: 'Inventory Control',
-      description: 'View café material stocks, ingredients, and supplier lists.',
+      title: 'INVENTORY',
       path: '/inventory',
       icon: Package,
-      color: 'bg-amber-700 hover:bg-amber-800',
     },
     {
-      title: 'Business Insights',
-      description: 'Track operational metrics, item performance, and sales curves.',
+      title: 'INSIGHTS',
       path: '/insights',
       icon: BarChart3,
-      color: 'bg-emerald-700 hover:bg-emerald-800',
     },
   ];
 
   return (
-    <div className="min-h-screen bg-stone-100 flex flex-col">
-      {/* Top Banner Bar */}
-      <header className="bg-white border-b border-stone-200 px-8 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center space-x-3">
-          <div className="bg-amber-800 text-white p-2.5 rounded-xl">
-            <Coffee className="w-6 h-6" />
-          </div>
-          <div>
-            <h1 className="font-bold text-stone-800 text-xl tracking-tight">Café Central System</h1>
-            <p className="text-xs text-stone-500">Welcome back, {user?.display_name}</p>
-          </div>
+    <div
+      style={{
+        minHeight: '100vh',
+        width: '100%',
+        backgroundColor: '#ffffff',
+        fontFamily: "'Inter', sans-serif",
+        display: 'flex',
+        flexDirection: 'column',
+        boxSizing: 'border-box',
+      }}
+    >
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
+
+      {/* Top Bar */}
+      <header
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '24px 40px',
+        }}
+      >
+        {/* Logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} alt="Logo" />
+          <h1
+            style={{
+              fontFamily: "'Liu Jian Mao Cao', cursive",
+              fontSize: 33,
+              color: '#1E1E1E',
+              lineHeight: 0.85,
+              margin: 0,
+              padding: 0,
+              display: 'flex',
+              flexDirection: 'column',
+            }}
+          >
+            <span>Tita's</span>
+            <span>cafe</span>
+          </h1>
         </div>
 
-        <div className="flex items-center space-x-4">
-          <span className="flex items-center space-x-1.5 text-xs font-semibold uppercase tracking-wider bg-stone-100 border border-stone-300 text-stone-600 px-3 py-1.5 rounded-full">
-            <Shield className="w-3.5 h-3.5 text-amber-700" />
-            <span>{user?.role} Access</span>
-          </span>
-          <button 
-            onClick={logout}
-            className="text-stone-400 hover:text-red-600 p-2 rounded-xl transition-colors"
-            title="Log out of app"
-          >
-            <LogOut className="w-5 h-5" />
-          </button>
+        {/* Role Badge */}
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 10,
+            background: '#faebe0',
+            padding: '10px 20px',
+            borderRadius: 28,
+            border: '2px solid #f2d8c3',
+            color: '#D1915F',
+            fontWeight: 'bold',
+            fontSize: 16,
+          }}
+        >
+          <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
+            <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
+          <span>{user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase() : 'Guest'}</span>
         </div>
       </header>
 
-      {/* Grid Hub Panel Options */}
-      <main className="flex-1 max-w-6xl w-full mx-auto p-8 flex flex-col justify-center">
-        <div className="mb-8 text-center md:text-left">
-          <h2 className="text-3xl font-extrabold text-stone-800">Operational Modules</h2>
-          <p className="text-stone-500 mt-1">Select an item below to enter the terminal interface.</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {/* Main Panel */}
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '24px 40px',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '1040px',
+            backgroundColor: '#ffffff',
+            border: '1px solid #ede1d3',
+            borderRadius: '28px',
+            padding: '36px',
+            boxShadow: '0 8px 30px rgba(0,0,0,0.05)',
+            display: 'flex',
+            gap: '28px',
+            flexWrap: 'wrap',
+            justifyContent: 'center',
+          }}
+        >
           {modules.map((mod) => {
             const Icon = mod.icon;
             return (
-              <div 
+              <button
                 key={mod.path}
-                className="bg-white border border-stone-200 p-6 rounded-2xl shadow-sm hover:shadow-md transition-all flex flex-col justify-between"
+                onClick={() => navigate(mod.path)}
+                style={{
+                  flex: '1 1 260px',
+                  minWidth: '260px',
+                  backgroundColor: '#ffffff',
+                  border: '1.5px solid #c9a47f',
+                  borderRadius: '22px',
+                  padding: '44px 28px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '22px',
+                  cursor: 'pointer',
+                  transition: 'box-shadow 0.2s, border-color 0.2s, transform 0.15s',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = '0 8px 20px rgba(194,150,118,0.18)';
+                  e.currentTarget.style.borderColor = '#c29676';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)';
+                  e.currentTarget.style.borderColor = '#c9a47f';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
               >
-                <div>
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white mb-4 ${mod.color.split(' ')[0]}`}>
-                    <Icon className="w-6 h-6" />
-                  </div>
-                  <h3 className="text-xl font-bold text-stone-800">{mod.title}</h3>
-                  <p className="text-stone-500 text-sm mt-2 leading-relaxed">{mod.description}</p>
-                </div>
-                
-                <button
-                  onClick={() => navigate(mod.path)}
-                  className={`w-full mt-6 text-white font-medium py-2.5 rounded-xl transition-colors shadow-sm ${mod.color}`}
+                <div
+                  style={{
+                    width: '92px',
+                    height: '92px',
+                    borderRadius: '20px',
+                    backgroundColor: '#f5e9da',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
                 >
-                  Enter Module
-                </button>
-              </div>
+                  <Icon size={44} color="#c29676" strokeWidth={2} />
+                </div>
+                <span
+                  style={{
+                    fontSize: '17px',
+                    fontWeight: 800,
+                    letterSpacing: '0.03em',
+                    color: '#1a1a1a',
+                  }}
+                >
+                  {mod.title}
+                </span>
+              </button>
             );
           })}
         </div>
       </main>
+
+      {/* Sign Out */}
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'flex-end',
+          padding: '0 40px 40px',
+        }}
+      >
+        <button
+          onClick={logout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            backgroundColor: '#e74c3c',
+            color: '#ffffff',
+            fontWeight: 800,
+            fontSize: '15px',
+            letterSpacing: '0.05em',
+            border: 'none',
+            borderRadius: '999px',
+            padding: '14px 28px',
+            cursor: 'pointer',
+            boxShadow: '0 6px 16px rgba(231,76,60,0.3)',
+            transition: 'background-color 0.2s',
+          }}
+          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = '#d63d2c')}
+          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = '#e74c3c')}
+        >
+          <LogOut size={18} />
+          SIGN OUT
+        </button>
+      </div>
     </div>
   );
 }

@@ -9,4 +9,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.error("⚠️ Setup Error: Supabase environment variables are missing in your .env file!");
 }
 
-export const supabase = createClient(supabaseUrl || '', supabaseAnonKey || '');
+export const supabase = createClient(
+  supabaseUrl || '', 
+  supabaseAnonKey || '',
+  {
+    auth: {
+      storage: window.sessionStorage, // 🔥 Keeps each tab's login session completely isolated
+      autoRefreshToken: true,
+      persistSession: true
+    }
+  }
+);
