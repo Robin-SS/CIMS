@@ -55,7 +55,7 @@ export default function HomeHub() {
           </h1>
         </div>
       
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
+        <div style={{ boxShadow: '0 0px 5px #d772204d', display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>

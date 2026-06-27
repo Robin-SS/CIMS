@@ -220,14 +220,14 @@ export default function PosTerminalUI({
             <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
-        <div style={{ display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '2px solid #f2d8c3' }}>
+        <div style={{ boxShadow: '0 0px 5px #d772204d', display: 'flex', gap: 16, background: '#FFFFFF', padding: '6px', borderRadius: 30, border: '2px solid #f2d8c3' }}>
           {['POINT OF SALES', 'RECENT ACTIVITY', 'PRODUCT REQUEST'].map((tab) => (
             <button key={tab} onClick={() => setActiveTab(tab)} style={{ padding: '10px 20px', borderRadius: 24, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, letterSpacing: 0.5, transition: 'all 0.2s', backgroundColor: activeTab === tab ? '#faebe0' : 'transparent', color: activeTab === tab ? '#D1915F' : '#D1915F' }}>
               {tab}
             </button>
           ))}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
+        <div style={{ boxShadow: '0 0px 5px #d772204d', display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
@@ -237,7 +237,7 @@ export default function PosTerminalUI({
 
       {activeTab === 'POINT OF SALES' && (
         <main style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 24, flexGrow: 1, alignItems: 'stretch', marginBottom: 24 }}>
-          <section style={{ border: '2px solid #f2d8c3', borderRadius: 12, background: '#FFFFFF', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
+          <section style={{ boxShadow: '0 0px 5px #d772204d', border: '2px solid #f2d8c3', borderRadius: 12, background: '#FFFFFF', padding: 24, display: 'flex', flexDirection: 'column', gap: 16, boxSizing: 'border-box' }}>
             <div style={{ display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 10, borderBottom: '2px solid #f2d8c3' }}>
               {categories.map(category => (
                 <button key={category} onClick={() => onSelectCategory(category)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 13, letterSpacing: 0.5, whiteSpace: 'nowrap', transition: 'all 0.2s ease', color: selectedCategory === category ? '#D1915F' : '#8A7E72', borderBottom: selectedCategory === category ? '3px solid #D1915F' : '3px solid transparent', paddingBottom: 4 }}>
@@ -379,12 +379,12 @@ export default function PosTerminalUI({
             </div>
           </section>
 
-          <aside style={{ display: 'flex', flexDirection: 'column', boxSizing: 'border-box' }}>
+          <aside style={{ boxShadow: '0 0px 5px #d772204d', display: 'flex', flexDirection: 'column', boxSizing: 'border-box', borderRadius: '12px' }}>
             {actionView === 'delete' ? (
               <div style={{ background: '#FFFFFF', border: '2px solid #FFC1C1', borderRadius: 12, padding: 20, display: 'flex', flexDirection: 'column', gap: 16, height: '100%', boxSizing: 'border-box' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700, color: '#FF2C2C' }}>DELETE PRODUCTS</h3>
-                  <button type="button" onClick={() => { setActionView('menu'); if(setSelectedDeleteIds) setSelectedDeleteIds([]); }} style={{ background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
+                  <button type="button" onClick={() => { setActionView('menu'); if(setSelectedDeleteIds) setSelectedDeleteIds([]); }} style={{ boxShadow: '0 0px 5px #d772204d', background: 'none', border: 'none', color: '#8A7E72', cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}>Cancel</button>
                 </div>
                 <div style={{ background: '#FFF0F0', color: '#C53030', fontSize: 12, padding: '10px 12px', borderRadius: 10, fontWeight: 600, border: '2px solid #C53030' }}>🚨 Multi-select active. Select cards on the left grid to queue them for permanent extraction.</div>
                 {formError && <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', color: '#B91C1C', fontSize: 12, padding: 10, borderRadius: 10, display: 'flex', gap: 6, alignItems: 'center' }}><AlertTriangle style={{ width: 14, height: 14, flexShrink: 0 }} /><span>{formError}</span></div>}
@@ -578,14 +578,14 @@ export default function PosTerminalUI({
         </main>
       )}
 
-      <nav style={{ background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', marginTop: 16 }}>
+      <nav style={{ boxShadow: '0 0px 5px #d772204d', background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', marginTop: 16 }}>
         {[
           { label: 'HOME',         icon: homeIcon,      path: '/home',      active: false },
           { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: true  },
           { label: 'INVENTORY',      icon: inventoryIcon, path: '/inventory', active: false },
           { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
         ].map(({ label, icon, path, active }) => (
-          <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '2px solid #f2d8c3' : '2px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 1px 4px #f2d8c3' : 'none' }}>
+          <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '2px solid #f2d8c3' : '2px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 0px 5px #d772204d' : 'none' }}>
             <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} /><span>{label}</span>
           </button>
         ))}

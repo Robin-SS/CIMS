@@ -60,6 +60,7 @@ export default function LoginUI({
           gap: '28px',
           position: 'relative',
           zIndex: 10,
+          boxShadow: '0 0px 5px #d772204d',
         }}
       >
         {/* Logo */}

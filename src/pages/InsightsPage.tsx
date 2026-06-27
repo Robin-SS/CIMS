@@ -212,6 +212,7 @@ useEffect(() => {
                     color: '#8A7E72',
                     backgroundColor: '#FFFFFF',
                     width: '200px',
+                    boxShadow: '0 0px 5px #d772204d',
                     fontFamily: 'inherit'
                   }}
                 />
@@ -228,6 +229,7 @@ useEffect(() => {
                       borderRadius: 8, 
                       fontSize: 12, 
                       fontWeight: 700, 
+                      boxShadow: '0 0px 5px #d772204d',
                       cursor: isLoading ? 'not-allowed' : 'pointer',
                       opacity: isLoading ? 0.6 : 1
                     }}

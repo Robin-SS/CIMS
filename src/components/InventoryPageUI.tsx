@@ -172,7 +172,7 @@ export default function InventoryPageUI({
   return (
     <div style={{
       minHeight: '100vh', backgroundColor: '#FFFFFF', fontFamily: "'Inter', sans-serif",
-      padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box'
+      padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxSizing: 'border-box', 
     }}>
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');
@@ -191,7 +191,7 @@ export default function InventoryPageUI({
           </h1>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
+        <div style={{ boxShadow: '0 0px 5px #d772204d', display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
@@ -223,7 +223,8 @@ export default function InventoryPageUI({
           flexDirection: 'column', 
           gap: 16, 
           boxSizing: 'border-box',
-          overflow: 'hidden' 
+          overflow: 'hidden' ,
+          boxShadow: '0 0px 5px #d772204d',
         }}>          
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
@@ -231,7 +232,8 @@ export default function InventoryPageUI({
               <p style={{ fontSize: 12, color: '#8A7E72', margin: 0 }}>Manage your stock levels and ingredient details</p>
             </div>
             <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '2px solid #f2d8c3', fontSize: 14, width: 240, outline: 'none', color: '#8A7E72', backgroundColor: '#FFFFFF' }} />
+              <input type="text" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} 
+                style={{ boxShadow: '0 0px 5px #d772204d', padding: '10px 16px', paddingRight: 40, borderRadius: 10, border: '2px solid #f2d8c3', fontSize: 14, width: 240, outline: 'none', color: '#8A7E72', backgroundColor: '#FFFFFF' }} />
               <button style={{ position: 'absolute', right: 12, background: 'none', border: 'none', cursor: 'pointer' }}>
                 <img src={searchIcon} alt="" style={{ width: 20, height: 20 }} />
               </button>
@@ -351,7 +353,8 @@ export default function InventoryPageUI({
           border: '2px solid #f2d8c3', 
           borderRadius: 12, 
           overflow: 'hidden', 
-          position: 'relative'
+          position: 'relative',
+          boxShadow: '0 0px 5px #d772204d',
         }}>          
         <h2 style={{ fontSize: 25, fontWeight: 800, color: '#D1915F', padding: '16px 24px', borderBottom: '2px solid #f2d8c3', margin: 0, textTransform: 'uppercase', textAlign: 'center' }}>
             {isAdmin ? 'Actions' : 'Notifications'}
@@ -583,14 +586,14 @@ export default function InventoryPageUI({
       </main>
 
       {/* FOOTER NAV */}
-      <nav style={{ background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', marginTop: 16 }}>
+      <nav style={{ boxShadow: '0 0px 5px #d772204d', background: '#ffffff', borderRadius: 35, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 6, width: '100%', boxSizing: 'border-box', border: '2px solid #f2d8c3', marginTop: 16 }}>
         {[
           { label: 'HOME',           icon: homeIcon,      path: '/home',      active: false },
           { label: 'POINT OF SALES', icon: posIcon,       path: '/pos',       active: false  },
           { label: 'INVENTORY',      icon: inventoryIcon, path: '/inventory', active: true },
           { label: 'INSIGHTS',       icon: insightsIcon,  path: '/insights',  active: false },
         ].map(({ label, icon, path, active }) => (
-          <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '2px solid #f2d8c3' : '2px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 1px 4px #f2d8c3' : 'none' }}>
+          <button key={label} type="button" onClick={() => navigate(path)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, flex: 1, margin: '0 4px', padding: '14px 22px', borderRadius: 28, cursor: 'pointer', color: '#D1915F', fontWeight: 700, fontSize: 14, transition: 'all 0.2s ease-in-out', border: active ? '2px solid #f2d8c3' : '2px solid transparent', background: active ? '#FFFFFF' : 'transparent', boxShadow: active ? '0 0px 5px #d772204d' : 'none' }}>
             <img src={icon} alt="" style={{ height: 22, width: 22, objectFit: 'contain', flexShrink: 0 }} />
             <span>{label}</span>
           </button>
