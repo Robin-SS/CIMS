@@ -1,18 +1,20 @@
 import { supabase } from '../supabaseClient';
 import type { PredictedIngredientDetail } from '../features/PredictedIngredientNeeds';
 
-export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
+export async function calculatePredictedNeeds(startDateInput: Date, endDateInput: Date) {
   try {
     // --- CARD 1: TIMELINE BOUNDARIES ---
-    const startDate = new Date();
+    const startDate = new Date(startDateInput);
     startDate.setHours(0, 0, 0, 0);
 
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + lookAheadDays);
+    const endDate = new Date(endDateInput);
     endDate.setHours(23, 59, 59, 999);
 
-    const forecastPeriodStr = `${startDate.toLocaleDateString('en-US')} - ${endDate.toLocaleDateString('en-US')}`;
+    const timeDiff = endDate.getTime() - startDate.getTime();
+    const lookAheadDays = Math.max(1, Math.ceil(timeDiff / (1000 * 60 * 60 * 24))); 
 
+    const forecastPeriodStr = `${startDate.toLocaleDateString('en-US')} - ${endDate.toLocaleDateString('en-US')}`;
+    
     // --- CARD 2: PREDICTED VOLUME (28-DAY VELOCITY WINDOW) ---
     const pastWindowDays = 28;
     const historyStartDate = new Date();
@@ -41,7 +43,6 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
 
     const validTransactionIds = recentTransactions.map((t: any) => t.transaction_id);
 
-    // STEP 2: Get all order_item rows belonging to those transactions
     const { data: pastSales, error: salesError } = await supabase
       .from('order_item')
       .select('product_id, order_quantity, transaction_id')
@@ -62,7 +63,6 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
       };
     }
 
-    // STEP 3: Aggregate total quantity sold per product over the 28-day window
     const productTotals: Record<number, number> = {};
     pastSales.forEach((item: any) => {
       if (!item.product_id) return;
@@ -70,7 +70,6 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
       productTotals[item.product_id] = (productTotals[item.product_id] || 0) + quantitySold;
     });
 
-    // STEP 4: Project demand forward over the lookAhead window
     let totalPredictedOrdersCount = 0;
     const productPredictedDemand: Record<number, number> = {};
 
@@ -83,7 +82,7 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
       totalPredictedOrdersCount += projectedNeeds;
     });
 
-    // Overall daily rate across all products — used for the "X per day" subtext on Card 2
+
     const totalSoldInWindow = Object.values(productTotals).reduce((sum, v) => sum + v, 0);
     const overallDailyRate = Math.round(totalSoldInWindow / pastWindowDays);
 
@@ -170,16 +169,11 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
  
     if (nonFoodItems) {
       nonFoodItems.forEach((item: any) => {
-        // Flag if current stock is already below the safety threshold
         const needsOrder = Number(item.stock_quantity) <= Number(item.threshold);
         if (needsOrder) {
           ingredientsToOrderCount++;
         }
 
-        // These don't go through the recipe/demand model (no predicted
-        // consumption volume — they're just a direct stock-vs-threshold
-        // check), so predictedNeed is reported as the threshold itself,
-        // i.e. "the safety level you're being measured against."
         predictedIngredientDetails.push({
           id: Number(item.ingredient_id),
           name: item.ingredient_name,
@@ -191,7 +185,6 @@ export async function calculatePredictedNeeds(lookAheadDays: number = 7) {
       });
     }
 
-    // Surface items that need ordering first
     predictedIngredientDetails.sort((a, b) => {
       const rank = { 'ORDER NOW': 1, 'ENOUGH STOCK': 0 };
       return rank[b.actionNeeded] - rank[a.actionNeeded];

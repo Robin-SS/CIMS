@@ -17,18 +17,25 @@ interface ForecastMetrics {
   predictedIngredientDetails: PredictedIngredientDetail[];
 }
 
-const FORECAST_RANGE_OPTIONS = [
-  { label: 'Next 7 days',  value: 7  },
-  { label: 'Next 14 days', value: 14 },
-  { label: 'Next 30 days', value: 30 },
-];
+const toInputDateString = (date: Date) => {
+  return date.toISOString().split('T')[0];
+};
+
+const todayStr = toInputDateString(new Date());
 
 export default function InsightsPage() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('REPORTS & ANALYTICS');
   const [searchQuery, setSearchQuery] = useState<string>(''); // ✅ NEW: Inline search query modifier state
   const [isLoading, setIsLoading] = useState<boolean>(false);
-  const [lookAheadDays, setLookAheadDays] = useState<number>(7);
+
+
+  const [forecastStartDate, setForecastStartDate] = useState<string>(toInputDateString(new Date()));
+  const [forecastEndDate, setForecastEndDate] = useState<string>(() => {
+    const defaultEnd = new Date();
+    defaultEnd.setDate(defaultEnd.getDate() + 7); // Default to a 7-day lookahead window
+    return toInputDateString(defaultEnd);
+  });
   
   // State for the KPI metrics
   const [metrics, setMetrics] = useState<KPIAnalytics>({
@@ -65,8 +72,11 @@ useEffect(() => {
       if (activeTab === 'FORECAST') {
         setIsForecastLoading(true); 
         
+        const start = new Date(forecastStartDate);
+        const end = new Date(forecastEndDate);
+
         // ✅ FIXED: Calling your frontend client calculations directly
-        const { data, error } = await calculatePredictedNeeds(lookAheadDays);
+        const { data, error } = await calculatePredictedNeeds(start, end);
         console.log('FORECAST DEBUG:', { data, error });
         
         if (!error && data) { 
@@ -84,7 +94,7 @@ useEffect(() => {
       }
     }
     loadForecastKPIs();
-  }, [activeTab,lookAheadDays]); 
+  }, [activeTab, forecastStartDate, forecastEndDate]); 
 
   // Native CSV Export Handler including Top KPI Aggregations
   const handleExportCSV = () => {
@@ -238,30 +248,45 @@ useEffect(() => {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, gap: 16 }}>
               <h3 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#D1915F' }}>PREDICTED INGREDIENT NEEDS</h3>
 
-              {/* ✅ Admin-only date range selector */}
               {user?.role === 'admin' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: '#D1915F' }}>Forecast range:</span>
-                  <select
-                    value={lookAheadDays}
-                    onChange={(e) => setLookAheadDays(Number(e.target.value))}
-                    style={{
-                      padding: '6px 10px',
-                      borderRadius: 8,
-                      border: '2px solid #f2d8c3',
-                      fontSize: 12,
-                      fontWeight: 700,
-                      color: '#D1915F',
-                      backgroundColor: '#FFFFFF',
-                      cursor: 'pointer',
-                      outline: 'none',
-                      fontFamily: 'inherit'
-                    }}
-                  >
-                    {FORECAST_RANGE_OPTIONS.map(opt => (
-                      <option key={opt.value} value={opt.value}>{opt.label}</option>
-                    ))}
-                  </select>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#D1915F' }}>From:</span>
+                    <input
+                      type="date"
+                      value={forecastStartDate}
+                      min={todayStr}
+                      onChange={(e) => setForecastStartDate(e.target.value)}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: 8,
+                        border: '2px solid #f2d8c3',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#D1915F',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span style={{ fontSize: 12, fontWeight: 600, color: '#D1915F' }}>To:</span>
+                    <input
+                      type="date"
+                      value={forecastEndDate}
+                      min={forecastStartDate} 
+                      onChange={(e) => setForecastEndDate(e.target.value)}
+                      style={{
+                        padding: '4px 8px',
+                        borderRadius: 8,
+                        border: '2px solid #f2d8c3',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: '#D1915F',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
                 </div>
               )}
             </div>
