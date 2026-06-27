@@ -159,7 +159,7 @@ export async function calculatePredictedNeeds(startDateInput: Date, endDateInput
     }
 
 
-    // TRACK B: Simple stock check for CONSUMABLES and PACKAGING
+   // TRACK B: Simple stock check for CONSUMABLES and PACKAGING
     const { data: nonFoodItems, error: nonFoodError } = await supabase
       .from('ingredients')
       .select('ingredient_id, ingredient_name, stock_quantity, threshold, measurement_unit, ingredient_category')
@@ -169,16 +169,23 @@ export async function calculatePredictedNeeds(startDateInput: Date, endDateInput
  
     if (nonFoodItems) {
       nonFoodItems.forEach((item: any) => {
+        const itemId = Number(item.ingredient_id);
+
+        if (cumulativeIngredientDemand[itemId]) {
+          return; 
+        }
+
+        // Flag if current stock is already below or equal to the safety threshold
         const needsOrder = Number(item.stock_quantity) <= Number(item.threshold);
         if (needsOrder) {
           ingredientsToOrderCount++;
         }
 
         predictedIngredientDetails.push({
-          id: Number(item.ingredient_id),
+          id: itemId,
           name: item.ingredient_name,
           currentStock: Number(item.stock_quantity),
-          predictedNeed: Number(item.threshold),
+          predictedNeed: Number(item.threshold), 
           unit: item.measurement_unit || '',
           actionNeeded: needsOrder ? 'ORDER NOW' : 'ENOUGH STOCK'
         });
