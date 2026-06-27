@@ -467,11 +467,11 @@ export default function PosTerminalUI({
                 
                 <hr style={{ border: 'none', borderTop: '2px solid #f2d8c3', margin: '4px 0' }} />
                 
-                <button onClick={() => setActionView('order')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#D1915F', borderRadius: 12, border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(209, 145, 95, 0.2)' }}>
-                  <div style={{ width: 45, height: 45, borderRadius: '50%', backgroundColor: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <button onClick={() => setActionView('order')} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 16, padding: '16px 24px', background: '#FFFFFF', borderRadius: 12, border: '2px solid #f2d8c3', cursor: 'pointer' }}>
+                  <div style={{ width: 45, height: 45, borderRadius: '50%', backgroundColor: '#faebe0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span style={{ fontSize: 22 }}>🛒</span>
                   </div>
-                  <span style={{ fontSize: 20, fontWeight: 800, color: '#FFFFFF' }}>TAKE ORDERS</span>
+                  <span style={{ fontSize: 20, fontWeight: 800, color: '#D1915F' }}>TAKE ORDERS</span>
                 </button>
               </div>
             ) : actionView === 'order' ? (

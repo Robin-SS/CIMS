@@ -32,21 +32,29 @@ export default function HomeHub() {
         display: 'flex',
         flexDirection: 'column',
         boxSizing: 'border-box',
+        padding: '24px 24.5px 0px 24.5px', 
       }}
     >
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
 
-      {/* Top Bar */}
-      <header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 40px' }}>
+      {/* HEADER ROW */}
+      <header 
+        style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: 20, 
+          flexShrink: 0,
+          width: '100%'
+        }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
           <img src={cafeLogo} style={{ height: 70, width: 'auto', objectFit: 'contain' }} alt="Logo" />
           <h1 style={{ fontFamily: "'Liu Jian Mao Cao', cursive", fontSize: 33, color: '#1E1E1E', lineHeight: 0.85, margin: 0, padding: 0, display: 'flex', flexDirection: 'column' }}>
-            <span>Tita's</span>
-            <span>cafe</span>
+            <span>Tita's</span><span>cafe</span>
           </h1>
         </div>
-
-        {/* Role Badge */}
+      
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#faebe0', padding: '10px 20px', borderRadius: 28, border: '2px solid #f2d8c3', color: '#D1915F', fontWeight: 'bold', fontSize: 16 }}>
           <div style={{ width: 24, height: 24, borderRadius: '50%', overflow: 'hidden' }}>
             <img src={adminIcon} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
@@ -56,8 +64,8 @@ export default function HomeHub() {
       </header>
 
       {/* Main Panel */}
-      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 40px' }}>
-        <div style={{ width: '100%', maxWidth: '1040px', backgroundColor: '#ffffff', border: '1px solid #ede1d3', borderRadius: '28px', padding: '36px', boxShadow: '0 8px 30px rgba(0,0,0,0.05)', display: 'flex', gap: '28px', flexWrap: 'wrap', justifyContent: 'center' }}>
+      <main style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px 0px 24px' }}>
+        <div style={{ width: '100%', maxWidth: '1040px', backgroundColor: '#ffffff', border: '2px solid #f2d8c3', borderRadius: '28px', padding: '36px', boxShadow: '0 0px 5px #d772204d', display: 'flex', gap: '28px', flexWrap: 'wrap', justifyContent: 'center' }}>
           
           {modules.map((mod) => (
             <HomeHubUI
@@ -72,7 +80,7 @@ export default function HomeHub() {
       </main>
 
       {/* Sign Out */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 40px 40px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 0px 40px 0' }}>
         <button
           onClick={logout}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#e74c3c', color: '#ffffff', fontWeight: 800, fontSize: '15px', letterSpacing: '0.05em', border: 'none', borderRadius: '999px', padding: '14px 28px', cursor: 'pointer', boxShadow: '0 6px 16px rgba(231,76,60,0.3)', transition: 'background-color 0.2s' }}

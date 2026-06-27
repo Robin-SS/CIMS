@@ -1,6 +1,6 @@
 import { AlertCircle } from 'lucide-react';
 import cafeLogo from '../assets/cafeLogo.png';
-import loginBG from '../assets/loginBG.png'
+import loginBG from '../assets/LoginBG2.png'
 
 interface LoginUIProps {
   onSubmit: (e: React.FormEvent) => void;
@@ -11,6 +11,8 @@ interface LoginUIProps {
   password: string;
   setPassword: (value: string) => void;
 }
+
+
 
 export default function LoginUI({ 
   onSubmit, error, isSubmitting, username, setUsername, password, setPassword 
@@ -25,104 +27,105 @@ export default function LoginUI({
         height: '100%',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: 'flex-end',
         position: 'fixed',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        backgroundColor: '#f5e6d8',
+        backgroundColor: '#FFFFFF',
         backgroundImage: `url(${loginBG})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center center',
         backgroundRepeat: 'no-repeat',
         backgroundAttachment: 'fixed',
         padding: '24px',
+        paddingRight: '4vw',
         boxSizing: 'border-box',
         overflow: 'hidden',
       }}
     >
-      {/* White Card */}
+      {/* Outlined Panel (no fill, no shadow) */}
       <div
         style={{
           backgroundColor: '#ffffff',
-          borderRadius: '36px',
-          padding: '56px 60px',
+          border: `3px solid #f2d8c3`,
+          borderRadius: '28px',
+          padding: '48px 56px',
           width: '100%',
-          maxWidth: '580px',
-          boxShadow: '0 24px 80px rgba(0,0,0,0.22)',
+          maxWidth: '420px',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          gap: '24px',
+          gap: '28px',
           position: 'relative',
           zIndex: 10,
         }}
       >
         {/* Logo */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '16px',
-          width: '100%',
-          marginBottom: '8px',
-        }}
-      >
-        {/* Coffee Image */}
-        <img
-          src={cafeLogo}
-          alt="Tita's Cafe Logo"
-          style={{
-            width: '140px',
-            height: '140px',
-            objectFit: 'contain',
-            filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.25))',
-          }}
-        />
-
-        {/* Text */}
         <div
           style={{
             display: 'flex',
-            flexDirection: 'column',
+            alignItems: 'center',
             justifyContent: 'center',
-            lineHeight: 1,
-            color: '#000',
-            fontFamily: '"Liu Jian Mao Cao", cursive',
-            textShadow: '0px 4px 4px rgba(0,0,0,0.25)',
+            gap: '16px',
+            width: '100%',
+            marginBottom: '4px',
           }}
         >
-          <span
+          <img
+            src={cafeLogo}
+            alt="Tita's Cafe Logo"
             style={{
-              fontSize: '64px',
+              width: '100px',
+              height: '100px',
+              objectFit: 'contain',
+              filter: 'drop-shadow(0px 4px 4px rgba(0,0,0,0.18))',
             }}
-          >
-            Tita's
-          </span>
+          />
 
-          <span
+          <div
             style={{
-              fontSize: '64px',
-              marginTop: '-6px',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'center',
+              lineHeight: 1,
+              color: '#1E1E1E',
+              fontFamily: '"Liu Jian Mao Cao", cursive',
+              fontWeight: '800',
             }}
           >
-            Cafe
+            <span style={{ fontSize: '48px' }}>Tita's</span>
+            <style>{`@import url('https://fonts.googleapis.com/css2?family=Liu+Jian+Mao+Cao&display=swap');`}</style>
+            <span style={{ fontSize: '48px', marginTop: '-6px' }}>Cafe</span>
+          </div>
+        </div>
+
+        {/* Good Day */}
+        <div
+          style={{
+            border: `3px solid #f2d8c3`,
+            borderRadius: '999px',
+            padding: '8px 0',
+            width: '100%',
+            textAlign: 'center',
+            backgroundColor: '#faebe0',
+                            boxShadow: '0 0px 5px #d772204d',
+
+          }}
+        >
+          <span style={{ fontFamily: 'Inter', fontSize: '26px', fontWeight: 800, color: '#D1915F' }}>
+            Good Day
           </span>
         </div>
-      </div>
-        {/* Good Day */}
-        
-        <p style={{ fontSize: '40px', fontWeight: 800, color: '#1a1a1a', margin: 0 }}>Good Day!</p>
 
         {/* Form */}
-        <form onSubmit={onSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '22px' }}>
+        <form onSubmit={onSubmit} style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
           {error && (
             <div style={{
               backgroundColor: '#fff1f0',
-              border: '1px solid #fca5a5',
+              border: '2px solid #f2d8c3',
               borderRadius: '14px',
               padding: '14px 18px',
               display: 'flex',
@@ -137,31 +140,33 @@ export default function LoginUI({
           )}
 
           {/* Role */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label style={{ fontSize: '19px', fontWeight: 700, color: '#1a1a1a' }}>Role</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontFamily: 'Inter', fontSize: '20px', fontWeight: 700, color: '#D1915F' }}>Role</label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="e.g. admin or staff"
+              placeholder="e.g. admin or employee"
               disabled={isSubmitting}
               style={{
                 width: '100%',
-                backgroundColor: '#f0e7df',
-                padding: '16px 20px',
-                borderRadius: '18px',
-                fontSize: '17px',
+                backgroundColor: 'rgba(255,255,255,0.6)',
+                padding: '14px 18px',
+                borderRadius: '14px',
+                fontSize: '16px',
                 color: '#5a483e',
-                border: 'none',
+                border: `2px solid #f2d8c3`,
                 outline: 'none',
                 boxSizing: 'border-box',
+                boxShadow: '0 0px 5px #d772204d',
+
               }}
             />
           </div>
 
           {/* Password */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <label style={{ fontSize: '19px', fontWeight: 700, color: '#1a1a1a' }}>Password</label>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <label style={{ fontFamily: 'Inter', fontSize: '20px', fontWeight: 700, color: '#D1915F' }}>Password</label>
             <input
               type="password"
               value={password}
@@ -170,14 +175,16 @@ export default function LoginUI({
               disabled={isSubmitting}
               style={{
                 width: '100%',
-                backgroundColor: '#f0e7df',
-                padding: '16px 20px',
-                borderRadius: '18px',
-                fontSize: '17px',
+                backgroundColor: 'rgba(255,255,255,0.6)',
+                padding: '14px 18px',
+                borderRadius: '14px',
+                fontSize: '16px',
                 color: '#5a483e',
-                border: 'none',
+                border: `2px solid #f2d8c3`,
                 outline: 'none',
                 boxSizing: 'border-box',
+                boxShadow: '0 0px 5px #d772204d',
+ 
               }}
             />
           </div>
@@ -188,22 +195,39 @@ export default function LoginUI({
             disabled={isSubmitting}
             style={{
               width: '100%',
-              backgroundColor: '#c29676',
+              backgroundColor: '#D1915F',
               color: '#ffffff',
-              padding: '18px',
-              borderRadius: '999px',
-              fontSize: '18px',
-              fontWeight: 800,
-              letterSpacing: '0.1em',
+              padding: '20px',
+              borderRadius: '50px',
+              fontSize: '19px',
+              fontWeight: 700,
               border: 'none',
               cursor: isSubmitting ? 'not-allowed' : 'pointer',
               marginTop: '8px',
-              transition: 'background-color 0.2s',
+              transition: 'background-color 0.2s, transform 0.2s ease, box-shadow 0.2s ease',
+              boxShadow: '0 1px 14px #996133cd',
+              transform: 'translateY(0)',
             }}
-            onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#a88266')}
-            onMouseLeave={e => (e.currentTarget.style.backgroundColor = '#c29676')}
+            onMouseEnter={e => {
+              e.currentTarget.style.backgroundColor = '#D1915F';
+              e.currentTarget.style.transform = 'translateY(-3px)';
+              e.currentTarget.style.boxShadow = '0 6px 18px #996133cd';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.backgroundColor = '#D1915F';
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 1px 14px #996133cd';
+            }}
+            onMouseDown={e => {
+              e.currentTarget.style.transform = 'translateY(0px)';
+              e.currentTarget.style.boxShadow = '0 1px 8px #996133cd';
+            }}
+            onMouseUp={e => {
+              e.currentTarget.style.transform = 'translateY(-3px)';
+              e.currentTarget.style.boxShadow = '0 6px 18px #996133cd';
+            }}
           >
-            {isSubmitting ? 'Verifying...' : 'SIGN IN'}
+            {isSubmitting ? 'Verifying...' : 'Sign in'}
           </button>
         </form>
       </div>
