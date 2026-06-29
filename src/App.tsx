@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
-import { InventoryProvider } from './context/InventoryContext'; // 1. Import the provider
+import { InventoryProvider } from './context/InventoryContext';
+import { Toaster } from 'sonner'; // 1. Import Sonner
 import Login from './pages/Login';
 import HomeHub from './pages/HomeHub';
 import PosTerminal from './pages/PosTerminal';
@@ -12,17 +13,17 @@ function App() {
   const { user } = useAuth();
 
   return (
-    // 2. Wrap your entire router setup here
     <InventoryProvider>
       <BrowserRouter>
+        {/* 2. Place Toaster here so it is available to all pages */}
+        <Toaster richColors position="top-right" />
+        
         <Routes>
-          {/* Public Login Route */}
           <Route 
             path="/login" 
             element={!user ? <Login /> : <Navigate to="/home" replace />} 
           />
 
-          {/* Home Hub Menu Portal */}
           <Route 
             path="/home" 
             element = {
@@ -32,7 +33,6 @@ function App() {
             } 
           />
 
-          {/* Module Pages */}
           <Route 
             path="/pos" 
             element={
@@ -60,7 +60,6 @@ function App() {
             } 
           />
 
-          {/* Automatic Fallback */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </BrowserRouter>

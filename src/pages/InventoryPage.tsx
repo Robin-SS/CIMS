@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useInventory } from '../context/InventoryContext';
 import type { Ingredient } from '../types/InventoryItem';
+import { ActivityService } from '../services/ActivityService';
 
 import InventoryPageUI from '../components/InventoryPageUI';
 import IngredientsTable from '../features/IngredientsTable';
@@ -9,6 +10,7 @@ import AddIngredientForm from '../features/AddIngredientForm';
 import EditIngredientForm from '../features/EditIngredientForm';
 import DeleteIngredientForm from '../features/DeleteIngredientForm';
 import NotificationPanel from '../features/NotificationPanel';
+
 
 type ActionView = 'menu' | 'add' | 'edit' | 'delete';
 
@@ -66,71 +68,118 @@ export default function InventoryPage() {
             >
               {(deleteProps) => (
                 <AddIngredientForm onSuccess={() => setIsModalOpen(false)}>
-                  {(addProps) => (
-                    <InventoryPageUI
-                      userRole={user?.role}
-                      isModalOpen={isModalOpen}
-                      setIsModalOpen={setIsModalOpen}
-                      sortedIngredients={sortedIngredients}
-                      sortColumn={sortColumn}
-                      sortDirection={sortDirection}
-                      onSort={handleSort}
-                      
-                      actionView={actionView}
-                      setActionView={setActionView}
+                  {(addProps) => {
+                    
+                    // 🌟 1. Intercept ADD Submission (Target set to 'Inventory')
+                    const interceptedFormSubmit = async (e: React.FormEvent) => {
+                      const success = await addProps.handleAddIngredient(e);
+                      if (success && user?.id) {
+                        await ActivityService.logAction(
+                          Number(user.id),
+                          `ADDED: ${addProps.formName} (${addProps.formQuantity}${addProps.formUnit})`,
+                          'Inventory'
+                        );
+                      }
+                      return success;
+                    };
 
-                      // Selection Properties
-                      selectedIngredient={selectedIngredient}
-                      onSelectIngredient={setSelectedIngredient}
-                      selectedIds={selectedIds}
-                      onToggleSelect={handleToggleSelect}
-                      onClearSelection={handleClearSelection}
+                    // 🌟 2. Intercept EDIT Submission (Target set to 'Inventory')
+                    const interceptedEditSubmit = async (e: React.FormEvent) => {
+                      const success = await editProps.handleEditIngredient(e);
+                      if (success && user?.id) {
+                        await ActivityService.logAction(
+                          Number(user.id),
+                          `EDITED: ${editProps.editName} (Updated to ${editProps.editQuantity}${editProps.editUnit})`,
+                          'Inventory'
+                        );
+                      }
+                      return success;
+                    };
 
-                      // Add Form Properties
-                      formError={addProps.formError}
-                      formName={addProps.formName}
-                      setFormName={addProps.setFormName}
-                      formCategory={addProps.formCategory}
-                      setFormCategory={addProps.setFormCategory}
-                      formQuantity={addProps.formQuantity}
-                      setFormQuantity={addProps.setFormQuantity}
-                      formUnit={addProps.formUnit}
-                      setFormUnit={addProps.setFormUnit}
-                      formThreshold={addProps.formThreshold}
-                      setFormThreshold={addProps.setFormThreshold}
-                      formStockDate={addProps.formStockDate}
-                      setFormStockDate={addProps.setFormStockDate}
-                      formExpiryDate={addProps.formExpiryDate}
-                      setFormExpiryDate={addProps.setFormExpiryDate}
-                      hasExpiry={addProps.hasExpiry}
-                      setHasExpiry={addProps.setHasExpiry}
-                      onFormSubmit={addProps.handleAddIngredient}
-                      
-                      // Edit Form Properties
-                      editError={editProps.editError}
-                      editName={editProps.editName}
-                      setEditName={editProps.setEditName}
-                      editCategory={editProps.editCategory}
-                      setEditCategory={editProps.setEditCategory}
-                      editQuantity={editProps.editQuantity}
-                      setEditQuantity={editProps.setEditQuantity}
-                      editUnit={editProps.editUnit}
-                      setEditUnit={editProps.setEditUnit}
-                      editThreshold={editProps.editThreshold}
-                      setEditThreshold={editProps.setEditThreshold}
-                      editStockDate={editProps.editStockDate}
-                      setEditStockDate={editProps.setEditStockDate}
-                      editExpiryDate={editProps.editExpiryDate}
-                      setEditExpiryDate={editProps.setEditExpiryDate}
-                      onEditSubmit={editProps.handleEditIngredient}
-                      
-                      // Delete Form Properties
-                      deleteError={deleteProps.deleteError}
-                      onDeleteSubmit={deleteProps.handleDeleteIngredients}
-                    >
-                      <NotificationPanel ingredients={ingredients} />
-                    </InventoryPageUI>
-                  )}
+                    // 🌟 3. Intercept DELETE Submission (Target set to 'Inventory')
+                    const interceptedDeleteSubmit = async () => {
+                      const targetedNames = ingredients
+                        .filter(i => selectedIds.has(i.ingredient_id))
+                        .map(i => i.ingredient_name)
+                        .join(', ');
+
+                      const success = await deleteProps.handleDeleteIngredients();
+                      if (success && user?.id) {
+                        await ActivityService.logAction(
+                          Number(user.id),
+                          `DELETED: ID(s) [${Array.from(selectedIds).join(', ')}] : ${targetedNames || 'Ingredients'}`,
+                          'Inventory'
+                        );
+                      }
+                      return success;
+                    };
+
+                    return (
+                      <InventoryPageUI
+                        userRole={user?.role}
+                        isModalOpen={isModalOpen}
+                        setIsModalOpen={setIsModalOpen}
+                        sortedIngredients={sortedIngredients}
+                        sortColumn={sortColumn}
+                        sortDirection={sortDirection}
+                        onSort={handleSort}
+                        
+                        actionView={actionView}
+                        setActionView={setActionView}
+
+                        // Selection Properties
+                        selectedIngredient={selectedIngredient}
+                        onSelectIngredient={setSelectedIngredient}
+                        selectedIds={selectedIds}
+                        onToggleSelect={handleToggleSelect}
+                        onClearSelection={handleClearSelection}
+
+                        // Add Form Properties
+                        formError={addProps.formError}
+                        formName={addProps.formName}
+                        setFormName={addProps.setFormName}
+                        formCategory={addProps.formCategory}
+                        setFormCategory={addProps.setFormCategory}
+                        formQuantity={addProps.formQuantity}
+                        setFormQuantity={addProps.setFormQuantity}
+                        formUnit={addProps.formUnit}
+                        setFormUnit={addProps.setFormUnit}
+                        formThreshold={addProps.formThreshold}
+                        setFormThreshold={addProps.setFormThreshold}
+                        formStockDate={addProps.formStockDate}
+                        setFormStockDate={addProps.setFormStockDate}
+                        formExpiryDate={addProps.formExpiryDate}
+                        setFormExpiryDate={addProps.setFormExpiryDate}
+                        hasExpiry={addProps.hasExpiry}
+                        setHasExpiry={addProps.setHasExpiry}
+                        onFormSubmit={interceptedFormSubmit}
+                        
+                        // Edit Form Properties
+                        editError={editProps.editError}
+                        editName={editProps.editName}
+                        setEditName={editProps.setEditName}
+                        editCategory={editProps.editCategory}
+                        setEditCategory={editProps.setEditCategory}
+                        editQuantity={editProps.editQuantity}
+                        setEditQuantity={editProps.setEditQuantity}
+                        editUnit={editProps.editUnit}
+                        setEditUnit={editProps.setEditUnit}
+                        editThreshold={editProps.editThreshold}
+                        setEditThreshold={editProps.setEditThreshold}
+                        editStockDate={editProps.editStockDate}
+                        setEditStockDate={editProps.setEditStockDate}
+                        editExpiryDate={editProps.editExpiryDate}
+                        setEditExpiryDate={editProps.setEditExpiryDate}
+                        onEditSubmit={interceptedEditSubmit}
+                        
+                        // Delete Form Properties
+                        deleteError={deleteProps.deleteError}
+                        onDeleteSubmit={interceptedDeleteSubmit}
+                      >
+                        <NotificationPanel ingredients={ingredients} />
+                      </InventoryPageUI>
+                    );
+                  }}
                 </AddIngredientForm>
               )}
             </DeleteIngredientForm>
