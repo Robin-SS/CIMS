@@ -16,6 +16,31 @@ interface InventoryContextType {
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
+/**
+ * Helper to check if an item's expiration date has been reached.
+ * If expired, it overrides the stock quantity to 0.
+ */
+function enforceExpirationRules<T extends { expiry_date?: string | null; stock_quantity: number }>(item: T): T {
+  if (!item.expiry_date) return item;
+
+  const expiration = new Date(item.expiry_date);
+  const today = new Date();
+
+  // Reset hours to compare purely by calendar dates
+  expiration.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+
+  // If today has reached or passed the expiration date, force stock to 0
+  if (today >= expiration) {
+    return {
+      ...item,
+      stock_quantity: 0,
+    };
+  }
+
+  return item;
+}
+
 export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
@@ -32,7 +57,11 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         .order('ingredient_name', { ascending: true });
 
       if (fetchError) throw fetchError;
-      setIngredients(data || []);
+
+      // Map over items to dynamically evaluate expiration dates on load
+      const processedData = (data || []).map(item => enforceExpirationRules(item));
+      
+      setIngredients(processedData);
       setError(null);
     } catch (err: any) {
       console.error("Failed to sync inventory snapshot data packet:", err);
@@ -50,7 +79,8 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         .select('*')
         .order('ingredient_name', { ascending: true });
       if (err) throw err;
-      return data || [];
+      
+      return (data || []).map(item => enforceExpirationRules(item));
     } catch (e) {
       console.error("Error fetching absolute inventory backup bounds:", e);
       return [];
@@ -61,6 +91,12 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   const addIngredient = async (ingredientData: any): Promise<boolean> => {
     try {
       const nameClean = (ingredientData.ingredient_name || '').trim();
+
+      // Run payload properties through expiration evaluation rules
+      const validatedData = enforceExpirationRules({
+        ...ingredientData,
+        stock_quantity: Number(ingredientData.stock_quantity)
+      });
 
       const { data: existingArchived, error: lookupError } = await supabase
         .from('ingredients')
@@ -77,12 +113,12 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
         const { error: reactivateError } = await supabase
           .from('ingredients')
           .update({
-            ingredient_category: ingredientData.ingredient_category,
-            stock_quantity: Number(ingredientData.stock_quantity),
-            measurement_unit: ingredientData.measurement_unit,
-            threshold: Number(ingredientData.threshold),
-            stock_date: ingredientData.stock_date || new Date().toISOString().split('T')[0],
-            expiry_date: ingredientData.expiry_date || null,
+            ingredient_category: validatedData.ingredient_category,
+            stock_quantity: validatedData.stock_quantity, // Applied 0 check rule
+            measurement_unit: validatedData.measurement_unit,
+            threshold: Number(validatedData.threshold),
+            stock_date: validatedData.stock_date || new Date().toISOString().split('T')[0],
+            expiry_date: validatedData.expiry_date || null,
             is_deleted: false 
           })
           .eq('ingredient_id', existingArchived.ingredient_id);
@@ -93,7 +129,7 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
           .from('ingredients')
           .insert([
             {
-              ...ingredientData,
+              ...validatedData,
               ingredient_name: nameClean,
               is_deleted: false 
             }
@@ -113,9 +149,15 @@ export function InventoryProvider({ children }: { children: React.ReactNode }) {
   // STANDARD RECORD UPDATES
   const updateIngredient = async (ingredientId: number, updatedData: any): Promise<boolean> => {
     try {
+      // Validate incoming data payloads against expiration milestones
+      const validatedData = enforceExpirationRules({
+        ...updatedData,
+        stock_quantity: Number(updatedData.stock_quantity ?? 0)
+      });
+
       const { error: updateError } = await supabase
         .from('ingredients')
-        .update(updatedData)
+        .update(validatedData)
         .eq('ingredient_id', ingredientId);
 
       if (updateError) throw updateError;
