@@ -412,7 +412,7 @@ export default function PosTerminal() {
                   </div>
                 )}
 
-                // custom success modal
+      
                 {paymentSuccess.isOpen && (
                   <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(2px)' }}>
                     <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif", textAlign: 'center' }}>
