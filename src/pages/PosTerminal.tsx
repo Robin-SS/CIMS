@@ -49,6 +49,15 @@ export default function PosTerminal() {
     message: ''
   });
 
+  // mock payment failure
+  const [isFailureModalOpen, setIsFailureModalOpen] = useState(false);
+
+  const handlePaymentFailure = () => {
+    setIsPaymentModalOpen(false); // Close the confirmation modal
+    setIsFailureModalOpen(true);  // Open the red failure modal
+    // Note: We do NOT clear the cart or deduct inventory here!
+  };
+
   // ✅ FORCE LIVE STATE SYSTEM RE-SYNC ON TAB / VIEW LIFE CYCLES
   useEffect(() => {
     async function syncTerminalContext() {
@@ -295,6 +304,9 @@ export default function PosTerminal() {
                   handleFormSubmit={actionView === 'delete' ? handleConfirmBatchDelete : isEditingItem ? editProps.handleFormSubmit : addProps.handleFormSubmit}
                   selectedDeleteIds={selectedDeleteIds}
                   setSelectedDeleteIds={setSelectedDeleteIds}
+                  isFailureModalOpen={isFailureModalOpen}
+                  setIsFailureModalOpen={setIsFailureModalOpen}
+                  handlePaymentFailure={handlePaymentFailure}
                 >
                   <OrderSummary 
                     orderItems={orderItems} 
@@ -302,6 +314,8 @@ export default function PosTerminal() {
                     onCheckout={handleOpenPaymentModal} 
                     ingredients={ingredients}
                   />
+
+                  
                 </PosTerminalUI>
 
                 {/* 💳 CHECKOUT PAYMENT MODAL */}
@@ -350,6 +364,14 @@ export default function PosTerminal() {
                             >
                               {isProcessingPayment ? 'PROCESSING ORDER...' : 'CONFIRM AND PROCESS'}
                             </button>
+                            
+                            <button 
+                              onClick={handlePaymentFailure} 
+                              style={{ background: '#FEF2F2', color: '#EF4444', padding: '14px', borderRadius: 8, fontWeight: 700, border: '2px solid #FECACA', cursor: 'pointer' }}
+                            >
+                              ❌ SIMULATE FAILED PAYMENT (TEST)
+                            </button>
+
                             <button 
                               onClick={() => setShowFinalConfirm(false)}
                               disabled={isProcessingPayment}
@@ -436,6 +458,25 @@ export default function PosTerminal() {
                         Done
                       </button>
 
+                    </div>
+                  </div>
+                )}
+
+                {/* CUSTOM FAILURE MODAL */}
+                {isFailureModalOpen && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(2px)' }}>
+                    <div style={{ background: '#FFFFFF', padding: 30, borderRadius: 16, width: '400px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+                      <div style={{ fontSize: 40, marginBottom: 10 }}>❌</div>
+                      <h2 style={{ color: '#EF4444', margin: '0 0 10px 0', fontSize: 22, fontWeight: 800 }}>TRANSACTION DECLINED</h2>
+                      <p style={{ color: '#8A7E72', fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
+                        The payment gateway rejected this transaction due to a simulated error. Your cart has been saved.
+                      </p>
+                      <button 
+                        onClick={() => setIsFailureModalOpen(false)} 
+                        style={{ background: '#1E1E1E', color: '#FFFFFF', width: '100%', padding: '14px', borderRadius: 8, fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                      >
+                        RETURN TO CART
+                      </button>
                     </div>
                   </div>
                 )}
