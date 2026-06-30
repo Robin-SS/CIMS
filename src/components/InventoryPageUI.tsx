@@ -360,7 +360,8 @@ export default function InventoryPageUI({
             {isAdmin ? 'Actions' : 'Notifications'}
           </h2>
 
-          <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flexGrow: 1 }}>
+         {/* Added minHeight: 0 to stop the infinite stretch bug */}
+         <div style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 0, overflowY: 'auto' }}>
             
             {/* 🔴 IF ADMIN: SHOW ACTIONS MENU & FORMS 🔴 */}
             {isAdmin ? (
@@ -384,8 +385,8 @@ export default function InventoryPageUI({
                     <h3 style={{ fontSize: 14, fontWeight: 700, color: '#D1915F', margin: '0 0 4px 0', textTransform: 'uppercase', textAlign: 'left' }}>
                       Alerts Overview
                     </h3>
-                    <div style={{ flexGrow: 1, overflowY: 'auto', maxHeight: '200px', paddingRight: 4 }}>
-                      {children}
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: '180px', paddingBottom: 8 }}>
+                    {children}
                     </div>
                   </>
                 )}

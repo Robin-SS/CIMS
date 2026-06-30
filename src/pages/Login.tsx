@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import LoginUI from '../components/LoginUI';
 import { ActivityService } from '../services/ActivityService';
+import { toast } from 'sonner';
 
 export default function Login() {
   const { login } = useAuth();
@@ -86,7 +87,7 @@ export default function Login() {
         await ActivityService.logAction(result.user.id, 'Logged in', 'User Authentication');
       }
       
-      alert('Login successful! Welcome back.');
+     toast.success("Login successful! Welcome back.");
     } catch (err) {
       setError('An unexpected error occurred.');
     } finally {

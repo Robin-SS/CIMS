@@ -35,6 +35,28 @@ export default function PosTerminal() {
 
   const [activityFilter, setActivityFilter] = useState<string>('ALL');
   const { ingredients, refreshInventory } = useInventory(); 
+  
+  // warning pop up for low stock items
+  const [stockWarning, setStockWarning] = useState<{ isOpen: boolean; product: Product | null; alerts: string[] }>({ 
+    isOpen: false, 
+    product: null, 
+    alerts: [] 
+  });
+
+  // success pop up for completed orders
+  const [paymentSuccess, setPaymentSuccess] = useState<{ isOpen: boolean; message: string }>({
+    isOpen: false,
+    message: ''
+  });
+
+  // mock payment failure
+  const [isFailureModalOpen, setIsFailureModalOpen] = useState(false);
+
+  const handlePaymentFailure = () => {
+    setIsPaymentModalOpen(false); // Close the confirmation modal
+    setIsFailureModalOpen(true);  // Open the red failure modal
+    // Note: We do NOT clear the cart or deduct inventory here!
+  };
 
   // ✅ FORCE LIVE STATE SYSTEM RE-SYNC ON TAB / VIEW LIFE CYCLES
   useEffect(() => {
@@ -45,6 +67,18 @@ export default function PosTerminal() {
     syncTerminalContext();
   }, [activeTab]);
 
+  const executeAddToCart = (productToLoad: Product) => {
+    setOrderItems((prevItems) => {
+      const existingItem = prevItems.find((item) => item.product.product_id === productToLoad.product_id);
+      if (existingItem) {
+        return prevItems.map((item) => 
+          item.product.product_id === productToLoad.product_id ? { ...item, quantity: item.quantity + 1 } : item
+        );
+      }
+      return [...prevItems, { product: productToLoad, quantity: 1 }];
+    });
+  };
+  
   const handleProductClick = (product: Product) => {
     if (actionView === 'delete') {
       setSelectedDeleteIds((prev) => 
@@ -102,24 +136,12 @@ export default function PosTerminal() {
       }
 
       if (stockAlerts.length > 0) {
-        alert(
-          `⚠️ STOCK WARNING for "${product.product_name}"\n\n` +
-          `The following components are below safe levels:\n` +
-          `${stockAlerts.join('\n')}\n\n` +
-          `Click OK to proceed with adding this item to the order.`
-        );
+        setStockWarning({ isOpen: true, product, alerts: stockAlerts });
+        return; // Stop execution here, wait for the user to click proceed in the modal
       }
     }
-
-    setOrderItems((prevItems) => {
-      const existingItem = prevItems.find((item) => item.product.product_id === product.product_id);
-      if (existingItem) {
-        return prevItems.map((item) => 
-          item.product.product_id === product.product_id ? { ...item, quantity: item.quantity + 1 } : item
-        );
-      }
-      return [...prevItems, { product, quantity: 1 }];
-    });
+    
+    executeAddToCart(product);
   };
 
   const handleUpdateQuantity = (productId: number, delta: number) => {
@@ -207,7 +229,11 @@ export default function PosTerminal() {
       refetchLogs();
       await refreshInventory(); 
 
-      alert(`Order processed successfully using ${pendingPaymentMethod}! Inventory updated.`);
+     setPaymentSuccess({
+        isOpen: true,
+        message: `Order processed successfully using ${pendingPaymentMethod}! Inventory updated.`
+      });
+
     } catch (err: any) {
       alert('Unexpected transaction failure: ' + err.message);
     } finally {
@@ -278,6 +304,9 @@ export default function PosTerminal() {
                   handleFormSubmit={actionView === 'delete' ? handleConfirmBatchDelete : isEditingItem ? editProps.handleFormSubmit : addProps.handleFormSubmit}
                   selectedDeleteIds={selectedDeleteIds}
                   setSelectedDeleteIds={setSelectedDeleteIds}
+                  isFailureModalOpen={isFailureModalOpen}
+                  setIsFailureModalOpen={setIsFailureModalOpen}
+                  handlePaymentFailure={handlePaymentFailure}
                 >
                   <OrderSummary 
                     orderItems={orderItems} 
@@ -285,9 +314,11 @@ export default function PosTerminal() {
                     onCheckout={handleOpenPaymentModal} 
                     ingredients={ingredients}
                   />
+
+                  
                 </PosTerminalUI>
 
-                {/* CHECKOUT SYSTEM DIALOG MODALS */}
+                {/* 💳 CHECKOUT PAYMENT MODAL */}
                 {isPaymentModalOpen && (
                   <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, backdropFilter: 'blur(2px)' }}>
                     <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 420, display: 'flex', flexDirection: 'column', gap: 24, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif" }}>
@@ -333,6 +364,14 @@ export default function PosTerminal() {
                             >
                               {isProcessingPayment ? 'PROCESSING ORDER...' : 'CONFIRM AND PROCESS'}
                             </button>
+                            
+                            <button 
+                              onClick={handlePaymentFailure} 
+                              style={{ background: '#FEF2F2', color: '#EF4444', padding: '14px', borderRadius: 8, fontWeight: 700, border: '2px solid #FECACA', cursor: 'pointer' }}
+                            >
+                              ❌ SIMULATE FAILED PAYMENT (TEST)
+                            </button>
+
                             <button 
                               onClick={() => setShowFinalConfirm(false)}
                               disabled={isProcessingPayment}
@@ -344,6 +383,100 @@ export default function PosTerminal() {
                         </>
                       )}
 
+                    </div>
+                  </div>
+                )}
+
+                {/* ⚠️ CUSTOM STOCK WARNING MODAL */}
+                {stockWarning.isOpen && stockWarning.product && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1100, backdropFilter: 'blur(2px)' }}>
+                    <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 420, display: 'flex', flexDirection: 'column', gap: 20, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif" }}>
+                      
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: '#F59E0B' }}>
+                         <span style={{ fontSize: 28 }}>⚠️</span>
+                         <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, textTransform: 'uppercase', color: '#1E1E1E' }}>
+                           Stock Warning
+                         </h2>
+                      </div>
+
+                      <div style={{ fontSize: 14, color: '#1E1E1E', lineHeight: 1.5, background: '#FEF3C7', padding: 16, borderRadius: 12, border: '1px solid #FDE68A' }}>
+                         <p style={{ margin: '0 0 12px 0', fontWeight: 600 }}>The following components for <span style={{ color: '#D1915F' }}>{stockWarning.product.product_name}</span> are critically low:</p>
+                         <ul style={{ margin: 0, paddingLeft: 20, color: '#92400E', display: 'flex', flexDirection: 'column', gap: 8, fontWeight: 500 }}>
+                            {stockWarning.alerts.map((alert, idx) => (
+                              <li key={idx}>{alert.replace('• ', '')}</li>
+                            ))}
+                         </ul>
+                      </div>
+
+                      <p style={{ margin: 0, fontSize: 13, color: '#8A7E72', textAlign: 'center' }}>
+                        Do you still want to proceed and add this to the current order?
+                      </p>
+
+                      <div style={{ display: 'flex', gap: 12, marginTop: 4 }}>
+                        <button 
+                          onClick={() => setStockWarning({ isOpen: false, product: null, alerts: [] })} 
+                          style={{ flex: 1, padding: '14px', background: '#F9F8F6', border: '2px solid #E5E5E5', borderRadius: 10, color: '#8A7E72', fontWeight: 700, cursor: 'pointer', fontSize: 14 }}
+                        >
+                          Cancel
+                        </button>
+                        <button 
+                          onClick={() => { 
+                            executeAddToCart(stockWarning.product!); 
+                            setStockWarning({ isOpen: false, product: null, alerts: [] }); 
+                          }} 
+                          style={{ flex: 1, padding: '14px', background: '#F59E0B', border: 'none', borderRadius: 10, color: '#FFFFFF', fontWeight: 800, cursor: 'pointer', fontSize: 14, boxShadow: '0 4px 12px rgba(245, 158, 11, 0.2)' }}
+                        >
+                          Proceed & Add
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+      
+                {paymentSuccess.isOpen && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(2px)' }}>
+                    <div style={{ background: '#FFFFFF', padding: 32, borderRadius: 16, width: 360, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontFamily: "'Inter', sans-serif", textAlign: 'center' }}>
+                      
+                      <div style={{ width: 72, height: 72, borderRadius: '50%', background: '#DEF7E5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#09AA29', fontSize: 36, marginBottom: 8 }}>
+                        ✓
+                      </div>
+
+                      <h2 style={{ margin: 0, fontSize: 22, fontWeight: 800, color: '#1E1E1E', letterSpacing: -0.5 }}>
+                        Payment Successful
+                      </h2>
+
+                      <p style={{ margin: 0, fontSize: 14, color: '#8A7E72', lineHeight: 1.5 }}>
+                        {paymentSuccess.message}
+                      </p>
+
+                      <button 
+                        onClick={() => setPaymentSuccess({ isOpen: false, message: '' })} 
+                        style={{ width: '100%', marginTop: 12, padding: '14px', background: '#09AA29', border: 'none', borderRadius: 10, color: '#FFFFFF', fontWeight: 800, cursor: 'pointer', fontSize: 15, boxShadow: '0 4px 12px rgba(9, 170, 41, 0.2)' }}
+                      >
+                        Done
+                      </button>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* CUSTOM FAILURE MODAL */}
+                {isFailureModalOpen && (
+                  <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1200, backdropFilter: 'blur(2px)' }}>
+                    <div style={{ background: '#FFFFFF', padding: 30, borderRadius: 16, width: '400px', textAlign: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }}>
+                      <div style={{ fontSize: 40, marginBottom: 10 }}>❌</div>
+                      <h2 style={{ color: '#EF4444', margin: '0 0 10px 0', fontSize: 22, fontWeight: 800 }}>TRANSACTION DECLINED</h2>
+                      <p style={{ color: '#8A7E72', fontSize: 14, marginBottom: 24, lineHeight: 1.5 }}>
+                        The payment gateway rejected this transaction due to a simulated error. Your cart has been saved.
+                      </p>
+                      <button 
+                        onClick={() => setIsFailureModalOpen(false)} 
+                        style={{ background: '#1E1E1E', color: '#FFFFFF', width: '100%', padding: '14px', borderRadius: 8, fontWeight: 700, border: 'none', cursor: 'pointer' }}
+                      >
+                        RETURN TO CART
+                      </button>
                     </div>
                   </div>
                 )}

@@ -56,6 +56,10 @@ interface PosTerminalUIProps {
   onIngredientRequestSubmit?: (payload: { ingredient_id: number; quantity: number; reason: string }) => Promise<void>;
   userId?: string | number;
   username?: string;
+
+  isFailureModalOpen: boolean;
+  setIsFailureModalOpen: (open: boolean) => void;
+  handlePaymentFailure: () => void;
 }
 
 export default function PosTerminalUI({

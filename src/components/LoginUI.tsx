@@ -142,7 +142,7 @@ export default function LoginUI({
 
           {/* Role */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <label style={{ fontFamily: 'Inter', fontSize: '20px', fontWeight: 700, color: '#D1915F' }}>Role</label>
+            <label style={{ fontFamily: 'Inter', fontSize: '20px', fontWeight: 700, color: '#D1915F' }}>Username</label>
             <input
               type="text"
               value={username}
