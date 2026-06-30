@@ -18,12 +18,11 @@ export default function NotificationPanel({ ingredients }: NotificationPanelProp
         display: 'flex', 
         flexDirection: 'column', 
         gap: 12, 
+        flex: 1,
+        minHeight: 0, 
+        overflowY: 'auto',   
         paddingRight: 4,
-        
-        // 🌟 THE NUCLEAR OPTION: Strict Viewport Height
-        paddingBottom: 30, // Adds invisible space at the bottom so the last item scrolls fully into view
-          height: '45vh',    // Reduced from 60vh so it stops bleeding over the outer border
-          overflowY: 'auto'
+        paddingBottom: 8
       }}
     >
       {alertItems.length === 0 ? (
